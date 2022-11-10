@@ -4,4 +4,7 @@ public class A {
     public void B () {
 
     }
+    public void C () {
+
+    }
 }
