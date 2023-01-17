@@ -21,6 +21,11 @@ public class ServiceScanningServiceImpl implements ServiceScanningService{
         this.init();
     }
 
+    /**
+     *
+     * @param locatedClass
+     * @return
+     */
     @Override
     public Set<ServiceDetails<?>> mapServices(Set<Class<?>> locatedClass) {
         final Set<ServiceDetails<?>> serviceDetailsStorage = new HashSet<>();
@@ -30,7 +35,6 @@ public class ServiceScanningServiceImpl implements ServiceScanningService{
             if (cls.isInterface()) {
                 continue;
             }
-
             for (Annotation annotation : cls.getAnnotations()) {
                 if (customServiceAnnotations.contains(annotation.annotationType())) {
                     ServiceDetails<?> serviceDetails = new ServiceDetails(
@@ -50,8 +54,15 @@ public class ServiceScanningServiceImpl implements ServiceScanningService{
                 .collect(Collectors.toCollection(LinkedHashSet::new));
     }
 
+    /**
+     * Process constructor
+     * @param cls
+     * @return
+     */
     private Constructor<?> findSuitableConstructor(Class<?> cls) {
-        for (Constructor<?> ctr : cls.getDeclaredConstructors()) {
+        Constructor<?>[] getAllConstructors = cls.getDeclaredConstructors();
+
+        for (Constructor<?> ctr : getAllConstructors) {
             if (ctr.isAnnotationPresent(Autowired.class)) {
                 ctr.setAccessible(true);
                 return ctr;
@@ -60,10 +71,18 @@ public class ServiceScanningServiceImpl implements ServiceScanningService{
         return cls.getDeclaredConstructors()[0];
     }
 
+    /**
+     *
+     * @param annotation
+     * @param cls
+     * @return
+     */
     private Method findVoidMethodWithZeroParamsAndAnnotations(Class<? extends Annotation> annotation, Class<?> cls) {
         for (Method method : cls.getDeclaredMethods()) {
-            if (method.getParameterCount() != 0 ||
-                    (method.getReturnType() != void.class && method.getReturnType() != Void.class) ||
+            int countParams = method.getParameterCount();
+            Class<?> getReturnType = method.getReturnType();
+
+            if (countParams != 0 || (getReturnType != void.class && getReturnType != Void.class) ||
                     !method.isAnnotationPresent(annotation)) {
                 continue;
             }
@@ -73,6 +92,11 @@ public class ServiceScanningServiceImpl implements ServiceScanningService{
         return null;
     }
 
+    /**
+     *
+     * @param cls
+     * @return
+     */
     private Method[] findBeans(Class<?> cls) {
         final Set<Class<? extends Annotation>> beanAnnotations = this.configuration.getCustomBeanAnnotations();
         final Set<Method> beanMethods = new HashSet<>();

@@ -9,7 +9,6 @@ import java.util.HashSet;
 import java.util.Set;
 
 public class CustomAnnotationsConfiguration extends BaseSubConfiguration {
-
     private final Set<Class<? extends Annotation>> customServiceAnnotations;
     private final Set<Class<? extends Annotation>> customBeanAnnotations;
 
@@ -43,7 +42,7 @@ public class CustomAnnotationsConfiguration extends BaseSubConfiguration {
         return customBeanAnnotations;
     }
 
-    public Set<Class<? extends Annotation>> getCustomeServiceAnnotations() {
+    public Set<Class<? extends Annotation>> getCustomeServiceAnnotations()   {
         return customServiceAnnotations;
     }
 }

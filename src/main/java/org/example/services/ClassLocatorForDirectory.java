@@ -16,6 +16,12 @@ public class ClassLocatorForDirectory implements ClassLocator {
         this.locatedClasses = new HashSet<>();
     }
 
+    /**
+     * Get all of classes
+     * @param directory the given directory.
+     * @return a set of located classes.
+     * @throws ClassLocationException
+     */
     @Override
     public Set<Class<?>> locateClasses(String directory) throws ClassLocationException {
         this.locatedClasses.clear();
@@ -33,6 +39,21 @@ public class ClassLocatorForDirectory implements ClassLocator {
         return this.locatedClasses;
     }
 
+    /**
+     * Recursive method for listing all files in a directory.
+     * <p>
+     * Starts with empty package name - ""
+     * If the file is directory, for each sub file calls this method again
+     * with the package name having the current file's name and a dot "." appended
+     * in order to build a proper package name.
+     * <p>
+     * If the file is file and its name ends with ".class" it is loaded using the
+     * built package name and it is added to a set of located classes.
+     *
+     * @param file the current file.
+     * @param packageName the current package name.
+     * @throws ClassNotFoundException
+     */
     private void scanDir(File file, String packageName) throws ClassNotFoundException {
         if (file.isDirectory()) {
             packageName += file.getName() + ".";

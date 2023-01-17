@@ -15,47 +15,37 @@ import java.util.Set;
 
 /**
  * Hello world!
- *
  */
-@Service
 public class App {
-    private final OtherService otherService;
 
-    public App(OtherService otherService) {
-        this.otherService = otherService;
+    public App() {
     }
 
-    @PostConstruct
-    public void init() {
-        System.out.println("hello" + this.otherService.getClass().getSimpleName());
-    }
-
-    public static void main(String[] args ) throws BeanInstantiationException {
+    public static void main(String[] args) throws BeanInstantiationException {
         run(App.class);
     }
 
     public static void run(Class<?> startupClass) throws BeanInstantiationException {
         run(App.class, new Configuration());
     }
+
     public static void run(Class<?> startupClass, Configuration configuration) throws BeanInstantiationException {
         Directory directory = new DirectoryResolverImpl().resolverDirectory(startupClass);
+        ServicesInstantiationService servicesInstantiationService = new ServicesInstantiationServiceImpl(
+                configuration.instantiations(),
+                new ObjectInstantiationServiceImpl());
+
         ClassLocator classLocator;
         if (directory.getDirectoryType() == DirectoryType.DIRECTORY) {
             classLocator = new ClassLocatorForDirectory();
         } else {
             classLocator = new ClassLocatorForJarFile();
         }
-
         Set<Class<?>> locatedClass = classLocator.locateClasses(directory.getDirectory());
+
         ServiceScanningService serviceScanningService = new ServiceScanningServiceImpl(configuration.annotations());
-        ServicesInstantiationService instantiationService = new ServicesInstantiationServiceImpl(
-                configuration.instantiations(),
-                new ObjectInstantiationServiceImpl()
-        );
+        Set<ServiceDetails<?>> serviceDetails = serviceScanningService.mapServices(locatedClass);
 
-        Set<ServiceDetails<?>> mappedServices = serviceScanningService.mapServices(locatedClass);
-        List<ServiceDetails<?>> serviceDetails = instantiationService.instantiateServiceAndBean(mappedServices);
-
-
+        List<ServiceDetails<?>> serviceDetails1 = servicesInstantiationService.instantiateServiceAndBean(serviceDetails);
     }
 }

@@ -6,6 +6,7 @@ import org.example.exceptions.ServiceInstantiationException;
 import org.example.models.EnqueuedServiceDetails;
 import org.example.models.ServiceBeanDetails;
 import org.example.models.ServiceDetails;
+import org.jetbrains.annotations.NotNull;
 
 import java.lang.reflect.Method;
 import java.util.*;
@@ -46,7 +47,6 @@ public class ServicesInstantiationServiceImpl implements ServicesInstantiationSe
             if (enqueuedServiceDetails.isResolved()) {
                 ServiceDetails<?> serviceDetails = enqueuedServiceDetails.getServiceDetails();
                 Object[] dependencyInstances = enqueuedServiceDetails.getDependencyInstances();
-
                 this.instantiationService.createInstance(serviceDetails, dependencyInstances);
                 this.registerInstantiatedService(serviceDetails);
                 this.registerBeans(serviceDetails);
@@ -90,9 +90,11 @@ public class ServicesInstantiationServiceImpl implements ServicesInstantiationSe
         }
     }
 
-    private void checkForMissingServices(Set<ServiceDetails<?>> mappedServices) throws ServiceInstantiationException{
+    private void checkForMissingServices(@NotNull Set<ServiceDetails<?>> mappedServices) throws ServiceInstantiationException{
         for (ServiceDetails<?> serviceDetails : mappedServices) {
-            for (Class<?> parameterType : serviceDetails.getTargetConstructor().getParameterTypes()) {
+            Class<?>[] parameterTypes = serviceDetails.getTargetConstructor().getParameterTypes();
+
+            for (Class<?> parameterType : parameterTypes) {
                 if (!this.isAssignableTypePresent(parameterType)) {
                     throw new ServiceInstantiationException(String.format(COULD_NOT_FIND_CONSTRUCTOR_PARAM_MSG,
                             serviceDetails.getServiceType().getName(),
@@ -107,7 +109,7 @@ public class ServicesInstantiationServiceImpl implements ServicesInstantiationSe
         try {
             for (Class<?> serviceType : this.allAvailableClasses) {
                 if (cls.isAssignableFrom(serviceType)) {
-                    return  true;
+                    return true;
                 }
             }
         } catch (NullPointerException nullPointerException) {
@@ -125,7 +127,8 @@ public class ServicesInstantiationServiceImpl implements ServicesInstantiationSe
         for (ServiceDetails<?> serviceDetails : mappedServices) {
             this.enqueuedServiceDetails.add(new EnqueuedServiceDetails(serviceDetails));
             this.allAvailableClasses.add(serviceDetails.getServiceType());
-            this.allAvailableClasses.addAll(Arrays.stream(serviceDetails.getBeans())
+            this.allAvailableClasses.addAll(
+                    Arrays.stream(serviceDetails.getBeans())
                     .map(Method::getReturnType)
                     .collect(Collectors.toList())
             );

@@ -1,10 +1,14 @@
 package org.example.test;
 
+import org.example.annotations.Autowired;
+
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class Main {
     public static void getInfoClass(Class<?> cls) {
@@ -109,8 +113,8 @@ public class Main {
 
     public static  void main(String[] args) throws Exception {
 //        getInfoClass(c);
-        OtherService otherService =  OtherService.class.getDeclaredConstructor().newInstance();
-        OtherService otherService1 = OtherService.class.getConstructor(String.class, String.class).newInstance("String 1 ", "String 2");
+//        OtherService oherService =  OtherService.class.getDeclaredConstructor().newInstance();
+//        OtherService otherService1 = OtherService.class.getConstructor(String.class, String.class).newInstance("String 1 ", "String 2");
 //        Class<?> testServiceOne = TestServiceOne.class;
 //        Annotation[] annotations =  testServiceOne.getAnnotations();
 //        for (Annotation annotation : annotations) {

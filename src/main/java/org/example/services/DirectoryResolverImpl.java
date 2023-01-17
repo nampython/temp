@@ -12,6 +12,7 @@ public class DirectoryResolverImpl implements  DirectoryResolver{
     @Override
     public Directory resolverDirectory(Class<?> startupClass) {
         final String directory = this.getDirectory(startupClass);
+        System.out.println(directory);
         return new Directory(directory, this.getDirectoryType(directory));
     }
 
