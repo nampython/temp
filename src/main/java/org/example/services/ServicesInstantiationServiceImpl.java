@@ -18,8 +18,11 @@ public class ServicesInstantiationServiceImpl implements ServicesInstantiationSe
     private static final String COULD_NOT_FIND_CONSTRUCTOR_PARAM_MSG = "Could not create instance of '%s'. Parameter '%s' implementation was not found";
     private final InstantiationConfiguration configuration;
     private final ObjectInstantiationService instantiationService;
+    //
     private final LinkedList<EnqueuedServiceDetails> enqueuedServiceDetails;
+    //
     private final List<Class<?>> allAvailableClasses;
+    //
     private final List<ServiceDetails<?>> instantiatedServices;
 
     public ServicesInstantiationServiceImpl(InstantiationConfiguration configuration, ObjectInstantiationService instantiationService) {
