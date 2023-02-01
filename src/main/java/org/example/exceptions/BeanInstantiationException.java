@@ -1,6 +1,6 @@
 package org.example.exceptions;
 
-public class BeanInstantiationException extends InstantiationException{
+public class BeanInstantiationException extends RuntimeException {
     public BeanInstantiationException(String message) {
         super(message);
     }

@@ -1,16 +1,13 @@
 package org.example.configs;
 
-import org.example.configs.configurations.CustomAnnotationsConfiguration;
-
 public abstract class BaseSubConfiguration {
-    private final Configuration parentConfiguration;
+    private final Configuration parentConfig;
 
-    protected BaseSubConfiguration(Configuration parenConfiguration) {
-        this.parentConfiguration = parenConfiguration;
+    protected BaseSubConfiguration(Configuration parentConfig) {
+        this.parentConfig = parentConfig;
     }
 
     public Configuration and() {
-        return this.parentConfiguration;
+        return this.parentConfig;
     }
-
 }

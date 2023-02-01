@@ -1,26 +1,18 @@
 package org.example.configs;
 
-import org.example.configs.configurations.CustomAnnotationsConfiguration;
-import org.example.configs.configurations.InstantiationConfiguration;
-
 public class Configuration {
-    private final CustomAnnotationsConfiguration annotation;
-    private final InstantiationConfiguration instantiations;
-
+    private final AnnotationsConfiguration annotations;
+    private final InstantiationConfiguration instantiationConfiguration;
     public Configuration() {
-        this.annotation = new CustomAnnotationsConfiguration(this);
-        this.instantiations = new InstantiationConfiguration(this);
+        this.annotations = new AnnotationsConfiguration(this);
+        this.instantiationConfiguration = new InstantiationConfiguration(this);
     }
 
-    public CustomAnnotationsConfiguration annotations() {
-        return this.annotation;
+    public AnnotationsConfiguration getAnnotations() {
+        return this.annotations;
     }
 
-    public InstantiationConfiguration instantiations() {
-        return this.instantiations;
-    }
-
-    public Configuration build() {
-        return this;
+    public InstantiationConfiguration getInstantiationConfiguration() {
+        return this.instantiationConfiguration;
     }
 }

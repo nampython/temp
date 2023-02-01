@@ -1,7 +1,6 @@
 package org.example.exceptions;
 
-public class PreDestroyExecutionException extends InstantiationException{
-
+public class PreDestroyExecutionException extends RuntimeException {
     public PreDestroyExecutionException(String message) {
         super(message);
     }
@@ -9,6 +8,4 @@ public class PreDestroyExecutionException extends InstantiationException{
     public PreDestroyExecutionException(String message, Throwable cause) {
         super(message, cause);
     }
-
-
 }

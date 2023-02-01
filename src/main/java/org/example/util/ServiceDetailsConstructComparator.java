@@ -1,11 +1,10 @@
-package org.example.utils;
+package org.example.util;
 
-import org.example.models.ServiceDetails;
+import org.example.container.ServiceDetails;
 
 import java.util.Comparator;
 
-public class ServiceDetailsConstructorComparator implements Comparator<ServiceDetails> {
-
+public class ServiceDetailsConstructComparator implements Comparator<ServiceDetails> {
     @Override
     public int compare(ServiceDetails serviceDetails1, ServiceDetails serviceDetails2) {
         return Integer.compare(

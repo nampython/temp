@@ -1,5 +1,4 @@
-package org.example.models;
-
+package org.example.container;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Constructor;
@@ -10,12 +9,12 @@ import java.util.List;
 
 public class ServiceDetails<T> {
     private Class<T> serviceType;
-    private Annotation annotation;
-    private Constructor<T> targetConstructor;
     private T instance;
-    private Method postConstructdMethod;
-    private Method preDestroyMethod;
+    private Constructor<T> targetConstructor;
+    private Annotation annotation;
     private Method[] beans;
+    private Method postConstructMethod;
+    private Method preDestroyMethod;
     private final List<ServiceDetails<?>> dependantServices;
 
     public ServiceDetails() {
@@ -25,20 +24,20 @@ public class ServiceDetails<T> {
     public ServiceDetails(Class<T> serviceType,
                           Annotation annotation,
                           Constructor<T> targetConstructor,
-                          Method postConstructdMethod,
+                          Method postConstructMethod,
                           Method preDestroyMethod,
                           Method[] beans) {
         this();
+        this.setServiceType(serviceType);
         this.setAnnotation(annotation);
         this.setTargetConstructor(targetConstructor);
-        this.setPostConstructdMethod(postConstructdMethod);
+        this.setPostConstructMethod(postConstructMethod);
         this.setPreDestroyMethod(preDestroyMethod);
         this.setBeans(beans);
     }
 
-
     public Class<T> getServiceType() {
-        return serviceType;
+        return this.serviceType;
     }
 
     public void setServiceType(Class<T> serviceType) {
@@ -46,7 +45,7 @@ public class ServiceDetails<T> {
     }
 
     public Annotation getAnnotation() {
-        return annotation;
+        return this.annotation;
     }
 
     public void setAnnotation(Annotation annotation) {
@@ -54,7 +53,7 @@ public class ServiceDetails<T> {
     }
 
     public Constructor<T> getTargetConstructor() {
-        return targetConstructor;
+        return this.targetConstructor;
     }
 
     public void setTargetConstructor(Constructor<T> targetConstructor) {
@@ -62,23 +61,23 @@ public class ServiceDetails<T> {
     }
 
     public T getInstance() {
-        return instance;
+        return this.instance;
     }
 
     public void setInstance(Object instance) {
         this.instance = (T) instance;
     }
 
-    public Method getPostConstructdMethod() {
-        return postConstructdMethod;
+    public Method getPostConstructMethod() {
+        return this.postConstructMethod;
     }
 
-    public void setPostConstructdMethod(Method postConstructdMethod) {
-        this.postConstructdMethod = postConstructdMethod;
+    public void setPostConstructMethod(Method postConstructMethod) {
+        this.postConstructMethod = postConstructMethod;
     }
 
     public Method getPreDestroyMethod() {
-        return preDestroyMethod;
+        return this.preDestroyMethod;
     }
 
     public void setPreDestroyMethod(Method preDestroyMethod) {
@@ -86,7 +85,7 @@ public class ServiceDetails<T> {
     }
 
     public Method[] getBeans() {
-        return beans;
+        return this.beans;
     }
 
     public void setBeans(Method[] beans) {
@@ -106,6 +105,16 @@ public class ServiceDetails<T> {
         if (this.serviceType == null) {
             return super.hashCode();
         }
+
         return this.serviceType.hashCode();
+    }
+
+    @Override
+    public String toString() {
+        if (this.serviceType == null) {
+            return super.toString();
+        }
+
+        return this.serviceType.getName();
     }
 }
