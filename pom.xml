@@ -72,7 +72,7 @@
                     <configuration>
                         <archive>
                             <manifest>
-                                <mainClass>org.example.App</mainClass>
+                                <mainClass>org.example.InitApp</mainClass>
                             </manifest>
                         </archive>
                     </configuration>

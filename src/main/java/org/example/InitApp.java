@@ -19,7 +19,7 @@ import java.util.Set;
 
 
 @Service
-public class App {
+public class InitApp {
 
     private static final DependencyContainer dependencyContainer;
 
