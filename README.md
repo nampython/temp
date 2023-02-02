@@ -106,3 +106,6 @@ Supported annotations by default:
 * PostConstruct - Specify a method that will be executed after the service has been created.
 * PreDestroy - Specify a method that will be executed just before the service has been disposed.
 * StartUp - Specify the startup method for the app.
+
+## More info
+If you are having trouble running the app, contact me at quangnam130520@gmail.com
