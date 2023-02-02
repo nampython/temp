@@ -1,11 +1,11 @@
 <h1 align="center">
-  <a href="https://github.com/dec0dOS/amazing-github-template">
-    <img src="{{cookiecutter.repo_slug}}/docs/images/logo.svg" alt="Logo" width="125" height="125">
+  <a href="https://github.com/nampython/IoC-Container">
+    <img src="slug/HappyFace.svg" alt="Logo" width="125" height="125">
   </a>
 </h1>
 
 <div align="center">
-  Amazing GitHub Template - Sane defaults for your next project!
+  Amazing Project - Feel free to learn!
   <br />
   <br />
   <a href="https://github.com/dec0dOS/amazing-github-template/issues/new?assignees=&labels=bug&template=01_BUG_REPORT.md&title=bug%3A+">Report a Bug</a>
