@@ -8,7 +8,7 @@
   Amazing Project - Feel free to learn!
   <br />
   <br />
-  <a href="https://https://github.com/nampython/IoC-Container/issues/new?assignees=&labels=bug&template=01_BUG_REPORT.md&title=bug%3A+">Report a Bug</a>
+  <a href="https://github.com/nampython/IoC-Container/issues/new?assignees=&labels=bug&template=bug_report.md&title=">Report a Bug</a>
   ·
   <a href="https://github.com/dec0dOS/amazing-github-template/issues/new?assignees=&labels=enhancement&template=02_FEATURE_REQUEST.md&title=feat%3A+">Request a Feature</a>
   .
