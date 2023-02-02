@@ -12,7 +12,7 @@
   ·
   <a href="https://github.com/nampython/IoC-Container/issues/new?assignees=&labels=enhancement&template=feature_request.md&title=">Request a Feature</a>
   .
-  <a href="https://github.com/dec0dOS/amazing-github-template/discussions">Ask a Question</a>
+  <a href="https://github.com/nampython/IoC-Container/discussions">Ask a Question</a>
 </div>
 
 
