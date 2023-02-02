@@ -52,7 +52,8 @@ You can run this project by 2 ways:
 * In your main method call InitApp.run(YourStartupClass.class)
 * Annotate your startup class with @Service
 * Create a void method and annotate it with @StartUp
-Here is a quick teaser of a complete Spring Boot application in Java:
+
+Here is a quick teaser of a complete project:
 
 ```java
 import org.example.annotations.Service;
