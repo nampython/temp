@@ -4,6 +4,7 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
@@ -30,7 +31,7 @@ public class ServiceDetails {
     /**
      * The annotation used to map the service (@Service or a custom one).
      */
-    private Annotation annotation;
+    private List<Class<? extends Annotation>> annotations;
     /**
      * The reference to all @Bean (or a custom one) annotated methods.
      */
@@ -50,17 +51,18 @@ public class ServiceDetails {
 
     public ServiceDetails() {
         this.dependantServices = new ArrayList<>();
+        this.annotations = new ArrayList<>();
     }
 
     public ServiceDetails(Class<?> serviceType,
-                          Annotation annotation,
+                          Collection<Class<? extends Annotation>> annotations,
                           Constructor<?> targetConstructor,
                           Method postConstructMethod,
                           Method preDestroyMethod,
                           Method[] beans) {
         this();
         this.setServiceType(serviceType);
-        this.setAnnotation(annotation);
+        this.addAnnotations(annotations);
         this.setTargetConstructor(targetConstructor);
         this.setPostConstructMethod(postConstructMethod);
         this.setPreDestroyMethod(preDestroyMethod);
@@ -75,12 +77,15 @@ public class ServiceDetails {
         this.serviceType = serviceType;
     }
 
-    public Annotation getAnnotation() {
-        return this.annotation;
+    public List<Class<? extends Annotation>> getAnnotation() {
+        return this.annotations;
     }
 
-    public void setAnnotation(Annotation annotation) {
-        this.annotation = annotation;
+    public void addAnnotations(Class<? extends Annotation> annotation) {
+        this.annotations.add(annotation);
+    }
+    public void addAnnotations(Collection<Class<? extends Annotation>> annotations) {
+        this.annotations.addAll(annotations);
     }
 
     public Constructor<?> getTargetConstructor() {

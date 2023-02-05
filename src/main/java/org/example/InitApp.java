@@ -70,7 +70,7 @@ public class InitApp {
                 configuration.getInstantiationConfiguration()
         );
         List<ServiceDetails> allServiceDetailsInstance = servicesInstantiationService.instantiateServicesAndBeans(allServiceDetails);
-        dependencyContainer.init(allServiceDetailsInstance, instantiationService);
+        dependencyContainer.init(locatedClass, allServiceDetailsInstance, instantiationService);
         runStartUpMethod(startupClass);
     }
 
@@ -86,7 +86,7 @@ public class InitApp {
     private static void runStartUpMethod(Class<?> startupClass) {
         ServiceDetails serviceDetails = dependencyContainer.getSingleService(startupClass);
         if (serviceDetails == null) {
-            throw new RuntimeException("");
+            return;
         }
         Method[] declaredMethods = serviceDetails.getServiceType().getDeclaredMethods();
         for (Method startUpMethod : declaredMethods) {

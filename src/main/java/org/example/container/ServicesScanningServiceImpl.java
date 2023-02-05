@@ -7,9 +7,7 @@ import org.example.util.ServiceDetailsConstructComparator;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -39,19 +37,21 @@ public class ServicesScanningServiceImpl implements ServicesScanningService {
      */
     @Override
     public Set<ServiceDetails> mappingClass(Set<Class<?>> locatedClasses) {
-        Set<Class<? extends Annotation>> serviceAnnotations = this.annotationsConfiguration.getServiceAnnotations();
+        final Map<Class<?>, List<Class<? extends Annotation>>> onlyServiceClasses = this.filterServiceClasses(locatedClasses);
+        final Set<ServiceDetails> serviceDetailsStorage = new HashSet<>();
 
-        for (Class<?> locatedClass : locatedClasses) {
-            if (locatedClass.isInterface()) {
-                continue;
-            }
-            for (Annotation annotation : locatedClass.getAnnotations()) {
-                if (serviceAnnotations.contains(annotation.annotationType())) {
-                    processServiceDetails(locatedClass, annotation);
-                    break;
-                }
-            }
-
+        for (Map.Entry<Class<?>, List<Class<? extends Annotation>>> serviceAnnotationEntry : onlyServiceClasses.entrySet()) {
+            final Class<?> cls = serviceAnnotationEntry.getKey();
+            final List<Class<? extends Annotation>> annotations = serviceAnnotationEntry.getValue();
+            final ServiceDetails serviceDetails = new ServiceDetails(
+                    cls,
+                    annotations,
+                    this.findSuitableConstructor(cls),
+                    this.findVoidMethodWithZeroParamsAndAnnotations(cls, PostConstruct.class),
+                    this.findVoidMethodWithZeroParamsAndAnnotations(cls, PreDestroy.class),
+                    this.findBeans(cls)
+            );
+            this.serviceDetailsStorage.add(serviceDetails);
         }
         return this.serviceDetailsStorage
                 .stream()
@@ -59,16 +59,34 @@ public class ServicesScanningServiceImpl implements ServicesScanningService {
                 .collect(Collectors.toCollection(LinkedHashSet::new));
     }
 
-    private void processServiceDetails(Class<?> locatedClass, Annotation annotation) {
-        ServiceDetails serviceDetails = new ServiceDetails(
-                locatedClass,
-                annotation,
-                this.findSuitableConstructor(locatedClass),
-                this.findVoidMethodWithZeroParamsAndAnnotations(locatedClass, PostConstruct.class),
-                this.findVoidMethodWithZeroParamsAndAnnotations(locatedClass, PreDestroy.class),
-                this.findBeans(locatedClass)
-        );
-        this.serviceDetailsStorage.add(serviceDetails);
+    /**
+     * Iterates all given classes and filters those that have {@link Service} annotation
+     * or one prided by the client.
+     *
+     * @return service annotated classes.
+     */
+    private Map<Class<?>, List<Class<? extends  Annotation>>> filterServiceClasses(Collection<Class<?>> scannedClasses) {
+        final Set<Class<? extends  Annotation>> serviceAnnotations = this.annotationsConfiguration.getServiceAnnotations();
+        final Map<Class<?>, List<Class<? extends Annotation>>> locatedClass = new HashMap<>();
+        for (Class<?> scannedClass : scannedClasses) {
+            if (scannedClass.isInterface() || scannedClass.isEnum() || scannedClass.isAnnotation()) {
+                continue;
+            }
+            for (Annotation annotation : scannedClass.getAnnotations()) {
+                if (serviceAnnotations.contains(annotation.annotationType())) {
+                    locatedClass.put(scannedClass, Collections.singletonList(annotation.annotationType()));
+                    break;
+                }
+
+                if (annotation.annotationType().isAnnotationPresent(AliasFor.class)) {
+                    final Class<? extends Annotation> aliasValue = annotation.annotationType().getAnnotation(AliasFor.class).value();
+                    if (serviceAnnotations.contains(aliasValue)) {
+                        locatedClass.put(scannedClass, List.of(aliasValue, annotation.annotationType()));
+                    }
+                }
+            }
+        }
+        return locatedClass;
     }
 
     /**
@@ -90,6 +108,18 @@ public class ServicesScanningServiceImpl implements ServicesScanningService {
                     method.setAccessible(true);
                     beanMethods.add(method);
                     break;
+                }
+                for (Annotation declaredAnnotation : method.getDeclaredAnnotations()) {
+                    if (declaredAnnotation.annotationType().isAnnotationPresent(AliasFor.class)) {
+                        final Class<? extends Annotation> aliasValue = declaredAnnotation.annotationType().getAnnotation(AliasFor.class).value();
+
+                        if (aliasValue == beanAnnotation) {
+                            method.setAccessible(true);
+                            beanMethods.add(method);
+
+                            break;
+                        }
+                    }
                 }
             }
         }
@@ -115,6 +145,16 @@ public class ServicesScanningServiceImpl implements ServicesScanningService {
                 ctr.setAccessible(true);
                 return ctr;
             }
+            for (Annotation declaredAnnotation : ctr.getDeclaredAnnotations()) {
+                final Class<? extends Annotation> aliasValue = declaredAnnotation
+                        .annotationType()
+                        .getAnnotation(AliasFor.class)
+                        .value();
+                if (aliasValue.isAnnotationPresent(Autowired.class)) {
+                    ctr.setAccessible(true);
+                    return ctr;
+                }
+            }
         }
         return locatedClass.getConstructors()[0];
     }
@@ -129,12 +169,22 @@ public class ServicesScanningServiceImpl implements ServicesScanningService {
         for (Method method : locatedClass.getDeclaredMethods()) {
             int countParams = method.getParameterCount();
             Class<?> getReturnType = method.getReturnType();
-            if (countParams != 0 || (getReturnType != void.class && getReturnType != Void.class) ||
-                    !method.isAnnotationPresent(annotation)) {
+            if (countParams != 0 || (getReturnType != void.class && getReturnType != Void.class)) {
                 continue;
             }
-            method.setAccessible(true);
-            return method;
+            if (method.isAnnotationPresent(annotation)) {
+                method.setAccessible(true);
+                return method;
+            }
+            for (Annotation declaredAnnotation : method.getDeclaredAnnotations()) {
+                if (declaredAnnotation.annotationType().isAnnotationPresent(AliasFor.class)) {
+                    final Class<? extends Annotation> aliasValue = declaredAnnotation.annotationType().getAnnotation(AliasFor.class).value();
+                    if (aliasValue == annotation) {
+                        method.setAccessible(true);
+                        return method;
+                    }
+                }
+            }
         }
         return null;
     }

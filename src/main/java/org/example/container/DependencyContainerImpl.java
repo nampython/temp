@@ -5,6 +5,7 @@ import org.example.instantiations.InstantiationService;
 import org.example.instantiations.ServiceBeanDetails;
 
 import java.lang.annotation.Annotation;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -21,18 +22,20 @@ public class DependencyContainerImpl implements DependencyContainer{
     private boolean isInit;
     private  List<ServiceDetails> allServiceAndBean;
     private InstantiationService instantiationService;
+    private Collection<Class<?>> locatedClasses;
 
     public DependencyContainerImpl() {
         this.isInit = false;
     }
 
     @Override
-    public void init(List<ServiceDetails> servicesAndBeans, InstantiationService instantiationService) throws AlreadyInitializedException {
+    public void init(Collection<Class<?>> locatedClass, List<ServiceDetails> servicesAndBeans, InstantiationService instantiationService) throws AlreadyInitializedException {
         if (this.isInit) {
             throw new AlreadyInitializedException(ALREADY_INITIALIZED_MSG);
         }
         this.allServiceAndBean = servicesAndBeans;
         this.instantiationService = instantiationService;
+        this.locatedClasses = locatedClass;
         this.isInit = true;
     }
 
@@ -62,12 +65,17 @@ public class DependencyContainerImpl implements DependencyContainer{
     @SuppressWarnings("unchecked")
     @Override
     public <T> T reload(T service, boolean reloadDependantServices) {
-        ServiceDetails serviceDetails =  this.getSingleService(service.getClass());
+        final ServiceDetails serviceDetails =  this.getSingleService(service.getClass());
         if (serviceDetails == null) {
             return null;
         }
         this.handleReload(serviceDetails, reloadDependantServices);
         return (T) serviceDetails.getInstance();
+    }
+
+    @Override
+    public Collection<Class<?>> getLocatedClasses() {
+        return Collections.unmodifiableCollection(this.locatedClasses);
     }
 
     private <T> void handleReload(ServiceDetails serviceDetails, boolean isReloadDependent) {
@@ -85,8 +93,8 @@ public class DependencyContainerImpl implements DependencyContainer{
     }
 
     private <T> Object collectDependencies(ServiceDetails serviceDetails) {
-        Class<?>[] parameterTypes = serviceDetails.getTargetConstructor().getParameterTypes();
-        Object[] dependencyInstances = new Object[parameterTypes.length];
+        final Class<?>[] parameterTypes = serviceDetails.getTargetConstructor().getParameterTypes();
+        final Object[] dependencyInstances = new Object[parameterTypes.length];
 
         for (int i = 0; i < parameterTypes.length; i++) {
             dependencyInstances[i] = this.getServiceInstance(parameterTypes[i]);
@@ -97,7 +105,7 @@ public class DependencyContainerImpl implements DependencyContainer{
     @Override
     public List<ServiceDetails> getServiceDetailByAnnotation(Class<? extends Annotation> annotationType) {
         return this.allServiceAndBean.stream()
-                .filter(sd -> sd.getAnnotation().annotationType() == annotationType)
+                .filter(sd -> sd.getAnnotation().contains(annotationType))
                 .collect(Collectors.toList());
     }
 
