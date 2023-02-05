@@ -37,15 +37,15 @@ public class ServicesScanningServiceImpl implements ServicesScanningService {
      */
     @Override
     public Set<ServiceDetails> mappingClass(Set<Class<?>> locatedClasses) {
-        final Map<Class<?>, List<Class<? extends Annotation>>> onlyServiceClasses = this.filterServiceClasses(locatedClasses);
+        final Map<Class<?>, Annotation> onlyServiceClasses = this.filterServiceClasses(locatedClasses);
         final Set<ServiceDetails> serviceDetailsStorage = new HashSet<>();
 
-        for (Map.Entry<Class<?>, List<Class<? extends Annotation>>> serviceAnnotationEntry : onlyServiceClasses.entrySet()) {
+        for (Map.Entry<Class<?>, Annotation> serviceAnnotationEntry : onlyServiceClasses.entrySet()) {
             final Class<?> cls = serviceAnnotationEntry.getKey();
-            final List<Class<? extends Annotation>> annotations = serviceAnnotationEntry.getValue();
+            final Annotation annotation = serviceAnnotationEntry.getValue();
             final ServiceDetails serviceDetails = new ServiceDetails(
                     cls,
-                    annotations,
+                    annotation,
                     this.findSuitableConstructor(cls),
                     this.findVoidMethodWithZeroParamsAndAnnotations(cls, PostConstruct.class),
                     this.findVoidMethodWithZeroParamsAndAnnotations(cls, PreDestroy.class),
@@ -65,23 +65,24 @@ public class ServicesScanningServiceImpl implements ServicesScanningService {
      *
      * @return service annotated classes.
      */
-    private Map<Class<?>, List<Class<? extends  Annotation>>> filterServiceClasses(Collection<Class<?>> scannedClasses) {
+    private Map<Class<?>, Annotation> filterServiceClasses(Collection<Class<?>> scannedClasses) {
         final Set<Class<? extends  Annotation>> serviceAnnotations = this.annotationsConfiguration.getServiceAnnotations();
-        final Map<Class<?>, List<Class<? extends Annotation>>> locatedClass = new HashMap<>();
+        final Map<Class<?>, Annotation> locatedClass = new HashMap<>();
+
         for (Class<?> scannedClass : scannedClasses) {
             if (scannedClass.isInterface() || scannedClass.isEnum() || scannedClass.isAnnotation()) {
                 continue;
             }
             for (Annotation annotation : scannedClass.getAnnotations()) {
                 if (serviceAnnotations.contains(annotation.annotationType())) {
-                    locatedClass.put(scannedClass, Collections.singletonList(annotation.annotationType()));
+                    locatedClass.put(scannedClass, annotation);
                     break;
                 }
 
                 if (annotation.annotationType().isAnnotationPresent(AliasFor.class)) {
                     final Class<? extends Annotation> aliasValue = annotation.annotationType().getAnnotation(AliasFor.class).value();
                     if (serviceAnnotations.contains(aliasValue)) {
-                        locatedClass.put(scannedClass, List.of(aliasValue, annotation.annotationType()));
+                        locatedClass.put(scannedClass, annotation);
                     }
                 }
             }
@@ -108,18 +109,6 @@ public class ServicesScanningServiceImpl implements ServicesScanningService {
                     method.setAccessible(true);
                     beanMethods.add(method);
                     break;
-                }
-                for (Annotation declaredAnnotation : method.getDeclaredAnnotations()) {
-                    if (declaredAnnotation.annotationType().isAnnotationPresent(AliasFor.class)) {
-                        final Class<? extends Annotation> aliasValue = declaredAnnotation.annotationType().getAnnotation(AliasFor.class).value();
-
-                        if (aliasValue == beanAnnotation) {
-                            method.setAccessible(true);
-                            beanMethods.add(method);
-
-                            break;
-                        }
-                    }
                 }
             }
         }

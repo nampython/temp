@@ -38,7 +38,7 @@ public class ServiceDetails {
     /**
      * The annotation used to map the service (@Service or a custom one).
      */
-    private final List<Class<? extends Annotation>> annotations;
+    private Annotation annotation;
     /**
      * The reference to all @Bean (or a custom one) annotated methods.
      */
@@ -58,18 +58,17 @@ public class ServiceDetails {
 
     public ServiceDetails() {
         this.dependantServices = new ArrayList<>();
-        this.annotations = new ArrayList<>();
     }
 
     public ServiceDetails(Class<?> serviceType,
-                          Collection<Class<? extends Annotation>> annotations,
+                          Annotation annotation,
                           Constructor<?> targetConstructor,
                           Method postConstructMethod,
                           Method preDestroyMethod,
                           Method[] beans) {
         this();
         this.setServiceType(serviceType);
-        this.addAnnotations(annotations);
+        this.setAnnotation(annotation);
         this.setTargetConstructor(targetConstructor);
         this.setPostConstructMethod(postConstructMethod);
         this.setPreDestroyMethod(preDestroyMethod);
@@ -84,15 +83,12 @@ public class ServiceDetails {
         this.serviceType = serviceType;
     }
 
-    public List<Class<? extends Annotation>> getAnnotation() {
-        return this.annotations;
+    public Annotation getAnnotation() {
+        return this.annotation;
     }
 
-    public void addAnnotations(Class<? extends Annotation> annotation) {
-        this.annotations.add(annotation);
-    }
-    public void addAnnotations(Collection<Class<? extends Annotation>> annotations) {
-        this.annotations.addAll(annotations);
+    public void setAnnotation(Annotation annotation) {
+        this.annotation = annotation;
     }
 
     public Constructor<?> getTargetConstructor() {
