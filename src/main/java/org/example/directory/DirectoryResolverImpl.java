@@ -2,6 +2,11 @@ package org.example.directory;
 
 import java.io.File;
 
+/**
+ * DirectoryResolver implementation.
+ * Determines the type of the directory, from which the application
+ * is started.
+ */
 public class DirectoryResolverImpl implements DirectoryResolver {
     private static final String JAR_FILE_EXTENSION = ".jar";
     @Override
@@ -10,7 +15,11 @@ public class DirectoryResolverImpl implements DirectoryResolver {
         DirectoryType dirType = this.getDirectoryType(pathDir);
         return new Directory(pathDir, dirType);
     }
-
+    /**
+     * Get the root dir where the given class resides.
+     *
+     * @param initClass - the given class.
+     */
     private String getDirectory(Class<?> initClass) {
         return initClass
                 .getProtectionDomain()
@@ -19,6 +28,10 @@ public class DirectoryResolverImpl implements DirectoryResolver {
                 .getFile();
     }
 
+    /**
+     * @param pathDir given directory.
+     * @return JAR_FILE or DIRECTORY.
+     */
     private DirectoryType getDirectoryType(String pathDir) {
         File file = new File(pathDir);
         boolean isJarFIle = this.checkJarFile(file, pathDir);

@@ -10,6 +10,12 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+/**
+ * Container for all services and beans.
+ * <p>
+ * Contains functionality for managing the application context
+ * by reloading or accessing certain services.
+ */
 public class DependencyContainerImpl implements DependencyContainer{
     private static final String ALREADY_INITIALIZED_MSG = "Dependency container already initialized.";
     private boolean isInit;

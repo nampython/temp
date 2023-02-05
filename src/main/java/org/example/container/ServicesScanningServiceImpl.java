@@ -12,7 +12,15 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-public class ServicesScanningServiceImpl implements ServicesScanningService{
+/**
+ * {@link ServicesScanningService} implementation.
+ * Iterates all located classes and looks for classes with @Service
+ * annotation or one provided by the client and then collects data for that class.
+ */
+public class ServicesScanningServiceImpl implements ServicesScanningService {
+    /**
+     * Configuration containing annotations provided by the client.
+     */
     private final AnnotationsConfiguration annotationsConfiguration;
     private final Set<ServiceDetails> serviceDetailsStorage;
 
@@ -22,6 +30,13 @@ public class ServicesScanningServiceImpl implements ServicesScanningService{
         this.init();
     }
 
+    /**
+     * Iterates all given classes and filters those that have {@link Service} annotation
+     * or one prided by the client and collects details for those classes.
+     *
+     * @param locatedClasses given set of classes.
+     * @return set or services and their collected details.
+     */
     @Override
     public Set<ServiceDetails> mappingClass(Set<Class<?>> locatedClasses) {
         Set<Class<? extends Annotation>> serviceAnnotations = this.annotationsConfiguration.getServiceAnnotations();
@@ -57,9 +72,10 @@ public class ServicesScanningServiceImpl implements ServicesScanningService{
     }
 
     /**
+     * Scans a given class for methods that are considered beans.
      *
-     * @param locatedClass
-     * @return
+     * @param locatedClass the given class.
+     * @return array or method references that are bean compliant.
      */
     private Method[] findBeans(Class<?> locatedClass) {
         final Set<Class<? extends Annotation>> beanAnnotations = this.annotationsConfiguration.getBeanAnnotations();
@@ -87,9 +103,11 @@ public class ServicesScanningServiceImpl implements ServicesScanningService{
     }
 
     /**
+     * Looks for a constructor from the given class that has {@link Autowired} annotation
+     * or gets the first one.
      *
-     * @param locatedClass
-     * @return
+     * @param locatedClass - the given class.
+     * @return suitable constructor.
      */
     private Constructor<?> findSuitableConstructor(Class<?> locatedClass) {
         for (Constructor<?> ctr : locatedClass.getDeclaredConstructors()) {
@@ -121,6 +139,10 @@ public class ServicesScanningServiceImpl implements ServicesScanningService{
         return null;
     }
 
+    /**
+     * Adds the platform's default annotations for services and beans on top of the
+     * ones that the client might have provided.
+     */
     private void init() {
         this.annotationsConfiguration.addBeanAnnotation(Bean.class);
         this.annotationsConfiguration.addServiceAnnotations(Service.class);

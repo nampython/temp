@@ -17,10 +17,19 @@ import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Set;
 
-
+/**
+ * Application starting point.
+ * <p>
+ * Contains multiple starting point methods.
+ * Holds an instance of Dependency Container.
+ */
 @Service
 public class InitApp {
 
+    /**
+     * Stores all loaded classes.
+     * There is only one instance of a dependency container.
+     */
     private static final DependencyContainer dependencyContainer;
 
     static {
@@ -35,6 +44,16 @@ public class InitApp {
         run(startupClass, new Configuration());
     }
 
+    /**
+     * This method calls executes when all services are loaded.
+     * <p>
+     * Looks for instantiated service from the given type.
+     * <p>
+     * If instance is found, looks for void method with 0 params
+     * and with with @StartUp annotation and executes it.
+     *
+     * @param startupClass any class from the client side.
+     */
     private static void run(Class<?> startupClass, Configuration configuration) {
         Set<Class<?>> locatedClass = getLocatedClass(startupClass);
         ServicesScanningService serviceScanningService = new ServicesScanningServiceImpl(
