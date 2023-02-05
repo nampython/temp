@@ -42,7 +42,7 @@ public class DependencyContainerImpl implements DependencyContainer{
     @SuppressWarnings("unchecked")
     @Override
     public <T> T getServiceInstance(Class<T> classService) {
-        return (T) this.getSingleService(classService).getInstance();
+        return (T) this.getSingleService(classService).getActualInstance();
     }
 
     @Override
@@ -70,7 +70,7 @@ public class DependencyContainerImpl implements DependencyContainer{
             return null;
         }
         this.handleReload(serviceDetails, reloadDependantServices);
-        return (T) serviceDetails.getInstance();
+        return (T) serviceDetails.getActualInstance();
     }
 
     @Override
@@ -112,7 +112,7 @@ public class DependencyContainerImpl implements DependencyContainer{
     @Override
     public List<Object> getAllServicesInstance() {
         return this.allServiceAndBean.stream()
-                .map(ServiceDetails::getInstance)
+                .map(ServiceDetails::getProxyInstance)
                 .collect(Collectors.toList());
     }
 }

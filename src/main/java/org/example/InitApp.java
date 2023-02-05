@@ -93,7 +93,7 @@ public class InitApp {
             if (!isStartupMethod(startUpMethod)) {
                 continue;
             }
-            invokeStartupMethod(startUpMethod, serviceDetails.getInstance());
+            invokeStartupMethod(startUpMethod, serviceDetails.getActualInstance());
         }
     }
 

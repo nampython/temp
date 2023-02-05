@@ -3,6 +3,7 @@ package org.example.instantiations;
 import org.example.configs.InstantiationConfiguration;
 import org.example.container.ServiceDetails;
 import org.example.exceptions.ServiceInstantiationException;
+import org.example.util.ProxyUtils;
 
 import java.lang.reflect.Method;
 import java.util.*;
@@ -70,6 +71,7 @@ public class ServicesInstantiationServiceImpl implements ServicesInstantiationSe
                 ServiceDetails serviceDetails = enqueuedServiceDetail.getServiceDetails();
                 Object[] dependencyInstances = enqueuedServiceDetail.getDependencyInstances();
                 this.createInstance(serviceDetails, dependencyInstances);
+                ProxyUtils.createProxyInstance(serviceDetails, dependencyInstances);
                 this.registerInstantiatedService(serviceDetails);
                 this.registerBeans(serviceDetails);
 
@@ -96,6 +98,7 @@ public class ServicesInstantiationServiceImpl implements ServicesInstantiationSe
                     bean,
                     serviceDetails);
             this.instantiationService.createBean(serviceBeanDetails);
+            serviceBeanDetails.setProxyInstance(serviceBeanDetails.getActualInstance());
             this.registerInstantiatedService(serviceBeanDetails);
         }
     }
@@ -118,7 +121,7 @@ public class ServicesInstantiationServiceImpl implements ServicesInstantiationSe
     private void findSuitableDependencyInstance(ServiceDetails serviceDetails) {
         for (EnqueuedServiceDetails enqueuedServiceDetail : this.enqueuedServiceDetails) {
             if (enqueuedServiceDetail.isDependencyRequired(serviceDetails.getServiceType())) {
-                enqueuedServiceDetail.addDependencyInstance(serviceDetails.getInstance());
+                enqueuedServiceDetail.addDependencyInstance(serviceDetails.getProxyInstance());
             }
         }
     }

@@ -16,6 +16,9 @@ import java.util.List;
  * at startup.
  */
 public class ServiceDetails {
+
+    private static final String PROXY_ALREADY_CREATED_MSG = "Proxy instance already created.";
+
     /**
      * The type of the service.
      */
@@ -25,13 +28,17 @@ public class ServiceDetails {
      */
     private Object instance;
     /**
+     * Proxy instance that will be injected into services instead of actual instance.
+     */
+    private Object proxyInstance;
+    /**
      * The constructor that will be used to create an instance of the service.
      */
     private Constructor<?> targetConstructor;
     /**
      * The annotation used to map the service (@Service or a custom one).
      */
-    private List<Class<? extends Annotation>> annotations;
+    private final List<Class<? extends Annotation>> annotations;
     /**
      * The reference to all @Bean (or a custom one) annotated methods.
      */
@@ -96,8 +103,19 @@ public class ServiceDetails {
         this.targetConstructor = targetConstructor;
     }
 
-    public Object getInstance() {
+    public Object getActualInstance() {
         return this.instance;
+    }
+    public Object getProxyInstance() {
+        return this.proxyInstance;
+    }
+
+    public void setProxyInstance(Object proxyInstance) {
+        if (this.proxyInstance != null) {
+            throw new IllegalArgumentException(PROXY_ALREADY_CREATED_MSG);
+        }
+
+        this.proxyInstance = proxyInstance;
     }
 
     public void setInstance(Object instance) {

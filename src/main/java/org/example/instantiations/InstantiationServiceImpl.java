@@ -56,7 +56,7 @@ public class InstantiationServiceImpl implements InstantiationService{
             return;
         }
         try {
-            postConstructMethod.invoke(serviceDetails.getInstance());
+            postConstructMethod.invoke(serviceDetails.getActualInstance());
         } catch (IllegalAccessException | InvocationTargetException e) {
             throw new PostConstructException(String.format(ERROR_INVOKE_POST_CONSTRUCT_METHOD, serviceDetails.getServiceType().getName()));
         }
@@ -76,7 +76,7 @@ public class InstantiationServiceImpl implements InstantiationService{
     @Override
     public void createBean(@NotNull ServiceBeanDetails serviceBeanDetails) throws BeanInstantiationException {
         Method beanMethod = serviceBeanDetails.getOriginMethod();
-        Object instanceService = serviceBeanDetails.getRootService().getInstance();
+        Object instanceService = serviceBeanDetails.getRootService().getActualInstance();
         try {
             Object beanInstance = beanMethod.invoke(instanceService);
             serviceBeanDetails.setInstance(beanInstance);
@@ -95,7 +95,7 @@ public class InstantiationServiceImpl implements InstantiationService{
     public void destroyInstance(@NotNull ServiceDetails serviceDetails) throws PreDestroyExecutionException {
         if (serviceDetails.getPreDestroyMethod() != null) {
             try {
-                serviceDetails.getPreDestroyMethod().invoke(serviceDetails.getInstance());
+                serviceDetails.getPreDestroyMethod().invoke(serviceDetails.getActualInstance());
             } catch (IllegalAccessException | InvocationTargetException e) {
                 throw new PreDestroyExecutionException(String.format(ERROR_INVOKE_PRE_DESTROY_METHOD, serviceDetails.getServiceType().getName()));
             }
