@@ -4,11 +4,11 @@ import org.example.container.ServiceDetails;
 
 import java.lang.reflect.Method;
 
-public class ServiceBeanDetails<T> extends ServiceDetails<T> {
+public class ServiceBeanDetails extends ServiceDetails {
     private final Method beanMethod;
-    private final ServiceDetails<?> rootService;
+    private final ServiceDetails rootService;
 
-    public ServiceBeanDetails(Class<T> serviceType, Method beanMethod, ServiceDetails<?> serviceDetails) {
+    public ServiceBeanDetails(Class<?> serviceType, Method beanMethod, ServiceDetails serviceDetails) {
         this.setServiceType(serviceType);
         this.setBeans(new Method[0]);
         this.beanMethod = beanMethod;
@@ -18,7 +18,7 @@ public class ServiceBeanDetails<T> extends ServiceDetails<T> {
         return this.beanMethod;
     }
 
-    public ServiceDetails<?> getRootService() {
+    public ServiceDetails getRootService() {
         return this.rootService;
     }
 }

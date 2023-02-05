@@ -14,7 +14,7 @@ import java.util.stream.Collectors;
 
 public class ServicesScanningServiceImpl implements ServicesScanningService{
     private final AnnotationsConfiguration annotationsConfiguration;
-    private final Set<ServiceDetails<?>> serviceDetailsStorage;
+    private final Set<ServiceDetails> serviceDetailsStorage;
 
     public ServicesScanningServiceImpl(AnnotationsConfiguration annotationsConfiguration) {
         this.annotationsConfiguration = annotationsConfiguration;
@@ -23,7 +23,7 @@ public class ServicesScanningServiceImpl implements ServicesScanningService{
     }
 
     @Override
-    public Set<ServiceDetails<?>> mappingClass(Set<Class<?>> locatedClasses) {
+    public Set<ServiceDetails> mappingClass(Set<Class<?>> locatedClasses) {
         Set<Class<? extends Annotation>> serviceAnnotations = this.annotationsConfiguration.getServiceAnnotations();
 
         for (Class<?> locatedClass : locatedClasses) {
@@ -45,7 +45,7 @@ public class ServicesScanningServiceImpl implements ServicesScanningService{
     }
 
     private void processServiceDetails(Class<?> locatedClass, Annotation annotation) {
-        ServiceDetails<?> serviceDetails = new ServiceDetails(
+        ServiceDetails serviceDetails = new ServiceDetails(
                 locatedClass,
                 annotation,
                 this.findSuitableConstructor(locatedClass),

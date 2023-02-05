@@ -7,23 +7,23 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public class ServiceDetails<T> {
-    private Class<T> serviceType;
-    private T instance;
-    private Constructor<T> targetConstructor;
+public class ServiceDetails {
+    private Class<?> serviceType;
+    private Object instance;
+    private Constructor<?> targetConstructor;
     private Annotation annotation;
     private Method[] beans;
     private Method postConstructMethod;
     private Method preDestroyMethod;
-    private final List<ServiceDetails<?>> dependantServices;
+    private final List<ServiceDetails> dependantServices;
 
     public ServiceDetails() {
         this.dependantServices = new ArrayList<>();
     }
 
-    public ServiceDetails(Class<T> serviceType,
+    public ServiceDetails(Class<?> serviceType,
                           Annotation annotation,
-                          Constructor<T> targetConstructor,
+                          Constructor<?> targetConstructor,
                           Method postConstructMethod,
                           Method preDestroyMethod,
                           Method[] beans) {
@@ -36,11 +36,11 @@ public class ServiceDetails<T> {
         this.setBeans(beans);
     }
 
-    public Class<T> getServiceType() {
+    public Class<?> getServiceType() {
         return this.serviceType;
     }
 
-    public void setServiceType(Class<T> serviceType) {
+    public void setServiceType(Class<?> serviceType) {
         this.serviceType = serviceType;
     }
 
@@ -52,20 +52,20 @@ public class ServiceDetails<T> {
         this.annotation = annotation;
     }
 
-    public Constructor<T> getTargetConstructor() {
+    public Constructor<?> getTargetConstructor() {
         return this.targetConstructor;
     }
 
-    public void setTargetConstructor(Constructor<T> targetConstructor) {
+    public void setTargetConstructor(Constructor<?> targetConstructor) {
         this.targetConstructor = targetConstructor;
     }
 
-    public T getInstance() {
+    public Object getInstance() {
         return this.instance;
     }
 
     public void setInstance(Object instance) {
-        this.instance = (T) instance;
+        this.instance =  instance;
     }
 
     public Method getPostConstructMethod() {
@@ -92,11 +92,11 @@ public class ServiceDetails<T> {
         this.beans = beans;
     }
 
-    public List<ServiceDetails<?>> getDependantServices() {
+    public List<ServiceDetails> getDependantServices() {
         return Collections.unmodifiableList(this.dependantServices);
     }
 
-    public void addDependantService(ServiceDetails<?> serviceDetails) {
+    public void addDependantService(ServiceDetails serviceDetails) {
         this.dependantServices.add(serviceDetails);
     }
 

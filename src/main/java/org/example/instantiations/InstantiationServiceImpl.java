@@ -20,7 +20,7 @@ public class InstantiationServiceImpl implements InstantiationService{
     private static final String ERROR_INSTANTIATION_BEAN = "Cannot instantiate the object bean  with annotation @Bean for %s";
 
     @Override
-    public void createInstance(@NotNull ServiceDetails<?> serviceDetails, Object @NotNull ... constructorParams) throws ServiceInstantiationException {
+    public void createInstance(@NotNull ServiceDetails serviceDetails, Object @NotNull ... constructorParams) throws ServiceInstantiationException {
         Constructor<?> targetConstructor = serviceDetails.getTargetConstructor();
         int parameterCount = targetConstructor.getParameterCount();
         if (!this.validParameterCount(parameterCount, constructorParams.length)) {
@@ -35,7 +35,7 @@ public class InstantiationServiceImpl implements InstantiationService{
         }
     }
 
-    private void callPostConstructMethod(@NotNull ServiceDetails<?> serviceDetails) {
+    private void callPostConstructMethod(@NotNull ServiceDetails serviceDetails) {
         Method postConstructMethod = serviceDetails.getPostConstructMethod();
         if (postConstructMethod == null) {
             return;
@@ -53,7 +53,7 @@ public class InstantiationServiceImpl implements InstantiationService{
     }
 
     @Override
-    public void createBean(@NotNull ServiceBeanDetails<?> serviceBeanDetails) throws BeanInstantiationException {
+    public void createBean(@NotNull ServiceBeanDetails serviceBeanDetails) throws BeanInstantiationException {
         Method beanMethod = serviceBeanDetails.getOriginMethod();
         Object instanceService = serviceBeanDetails.getRootService().getInstance();
         try {
@@ -65,7 +65,7 @@ public class InstantiationServiceImpl implements InstantiationService{
     }
 
     @Override
-    public void destroyInstance(@NotNull ServiceDetails<?> serviceDetails) throws PreDestroyExecutionException {
+    public void destroyInstance(@NotNull ServiceDetails serviceDetails) throws PreDestroyExecutionException {
         if (serviceDetails.getPreDestroyMethod() != null) {
             try {
                 serviceDetails.getPreDestroyMethod().invoke(serviceDetails.getInstance());

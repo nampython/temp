@@ -13,7 +13,7 @@ public class ServicesInstantiationServiceImpl implements ServicesInstantiationSe
     private static final String COULD_NOT_FIND_CONSTRUCTOR_PARAM_MSG = "Could not create instance of '%s'. Parameter '%s' implementation was not found";
     private final InstantiationService instantiationService;
     private final InstantiationConfiguration instantiationConfiguration;
-    private final List<ServiceDetails<?>> instantiatiedServices;
+    private final List<ServiceDetails> instantiatiedServices;
     private final List<Class<?>> allAvailableServices;
     private final LinkedList<EnqueuedServiceDetails> enqueuedServiceDetails;
 
@@ -27,7 +27,7 @@ public class ServicesInstantiationServiceImpl implements ServicesInstantiationSe
     }
 
     @Override
-    public List<ServiceDetails<?>> instantiateServicesAndBeans(Set<ServiceDetails<?>> mappedClasses) {
+    public List<ServiceDetails> instantiateServicesAndBeans(Set<ServiceDetails> mappedClasses) {
         this.init(mappedClasses);
         this.checkForMissingServices(mappedClasses);
 
@@ -39,7 +39,7 @@ public class ServicesInstantiationServiceImpl implements ServicesInstantiationSe
             }
             EnqueuedServiceDetails enqueuedServiceDetail = this.enqueuedServiceDetails.removeFirst();
             if (enqueuedServiceDetail.isResolved()) {
-                ServiceDetails<?> serviceDetails = enqueuedServiceDetail.getServiceDetails();
+                ServiceDetails serviceDetails = enqueuedServiceDetail.getServiceDetails();
                 Object[] dependencyInstances = enqueuedServiceDetail.getDependencyInstances();
                 this.createInstance(serviceDetails, dependencyInstances);
                 this.registerInstantiatedService(serviceDetails);
@@ -53,9 +53,9 @@ public class ServicesInstantiationServiceImpl implements ServicesInstantiationSe
         return this.instantiatiedServices;
     }
 
-    private void registerBeans(ServiceDetails<?> serviceDetails) {
+    private void registerBeans(ServiceDetails serviceDetails) {
         for (Method bean : serviceDetails.getBeans()) {
-            ServiceBeanDetails<?> serviceBeanDetails = new ServiceBeanDetails<>(
+            ServiceBeanDetails serviceBeanDetails = new ServiceBeanDetails(
                     bean.getReturnType(),
                     bean,
                     serviceDetails);
@@ -64,7 +64,7 @@ public class ServicesInstantiationServiceImpl implements ServicesInstantiationSe
         }
     }
 
-    private void registerInstantiatedService(ServiceDetails<?> serviceDetails) {
+    private void registerInstantiatedService(ServiceDetails serviceDetails) {
         if (!(serviceDetails instanceof  ServiceBeanDetails)) {
             this.updatedDependantServices(serviceDetails);
         }
@@ -72,7 +72,7 @@ public class ServicesInstantiationServiceImpl implements ServicesInstantiationSe
         this.findSuitableDependencyInstance(serviceDetails);
     }
 
-    private void findSuitableDependencyInstance(ServiceDetails<?> serviceDetails) {
+    private void findSuitableDependencyInstance(ServiceDetails serviceDetails) {
         for (EnqueuedServiceDetails enqueuedServiceDetail : this.enqueuedServiceDetails) {
             if (enqueuedServiceDetail.isDependencyRequired(serviceDetails.getServiceType())) {
                 enqueuedServiceDetail.addDependencyInstance(serviceDetails.getInstance());
@@ -80,9 +80,9 @@ public class ServicesInstantiationServiceImpl implements ServicesInstantiationSe
         }
     }
 
-    private void updatedDependantServices(ServiceDetails<?> selectedService) {
+    private void updatedDependantServices(ServiceDetails selectedService) {
         for (Class<?> parameterType : selectedService.getTargetConstructor().getParameterTypes()) {
-            for (ServiceDetails<?> serviceDetails : this.instantiatiedServices) {
+            for (ServiceDetails serviceDetails : this.instantiatiedServices) {
                 if (parameterType.isAssignableFrom(serviceDetails.getServiceType())) {
                     serviceDetails.addDependantService(selectedService);
                 }
@@ -95,8 +95,8 @@ public class ServicesInstantiationServiceImpl implements ServicesInstantiationSe
      * @param mappedServices
      * @throws ServiceInstantiationException
      */
-    private void checkForMissingServices(Set<ServiceDetails<?>> mappedServices) throws ServiceInstantiationException {
-        for (ServiceDetails<?> serviceDetails : mappedServices) {
+    private void checkForMissingServices(Set<ServiceDetails> mappedServices) throws ServiceInstantiationException {
+        for (ServiceDetails serviceDetails : mappedServices) {
             Class<?>[] parameterTypesOfTargetConstructor = serviceDetails.getTargetConstructor().getParameterTypes();
 
             for (Class<?> parameterType : parameterTypesOfTargetConstructor) {
@@ -127,16 +127,16 @@ public class ServicesInstantiationServiceImpl implements ServicesInstantiationSe
         return false;
     }
 
-    private void createInstance(ServiceDetails<?> serviceDetails, Object ... dependencyInstances) {
+    private void createInstance(ServiceDetails serviceDetails, Object ... dependencyInstances) {
         this.instantiationService.createInstance(serviceDetails, dependencyInstances);
     }
 
-    private void init(Set<ServiceDetails<?>> mappedClass) {
+    private void init(Set<ServiceDetails> mappedClass) {
         this.clear();
         this.getAllAvailableServices(mappedClass);
     }
 
-    private void getAllEnqueuedServices(ServiceDetails<?> serviceDetail) {
+    private void getAllEnqueuedServices(ServiceDetails serviceDetail) {
         this.enqueuedServiceDetails.add(
                 new EnqueuedServiceDetails(serviceDetail)
         );
@@ -148,8 +148,8 @@ public class ServicesInstantiationServiceImpl implements ServicesInstantiationSe
      * Container is all serviceDetails
      * @param mappedClass
      */
-    private void getAllAvailableServices(Set<ServiceDetails<?>> mappedClass) {
-        for (ServiceDetails<?> serviceDetail : mappedClass) {
+    private void getAllAvailableServices(Set<ServiceDetails> mappedClass) {
+        for (ServiceDetails serviceDetail : mappedClass) {
             this.allAvailableServices.add(serviceDetail.getServiceType());
             this.allAvailableServices.addAll(
                     Arrays.stream(serviceDetail.getBeans())

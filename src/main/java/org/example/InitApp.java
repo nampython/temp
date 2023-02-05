@@ -27,6 +27,10 @@ public class InitApp {
         dependencyContainer = new DependencyContainerImpl();
     }
 
+
+    public static void main(String[] args) {
+        run(InitApp.class);
+    }
     public static void run(Class<?> startupClass) {
         run(startupClass, new Configuration());
     }
@@ -41,12 +45,12 @@ public class InitApp {
         );
         InstantiationService instantiationService = new InstantiationServiceImpl();
 
-        Set<ServiceDetails<?>> allServiceDetails = servicesScanningService.mappingClass(locatedClass);
+        Set<ServiceDetails> allServiceDetails = servicesScanningService.mappingClass(locatedClass);
         ServicesInstantiationService servicesInstantiationService = new ServicesInstantiationServiceImpl(
                 instantiationService,
                 configuration.getInstantiationConfiguration()
         );
-        List<ServiceDetails<?>> allServiceDetailsInstance = servicesInstantiationService.instantiateServicesAndBeans(allServiceDetails);
+        List<ServiceDetails> allServiceDetailsInstance = servicesInstantiationService.instantiateServicesAndBeans(allServiceDetails);
         dependencyContainer.init(allServiceDetailsInstance, instantiationService);
         runStartUpMethod(startupClass);
     }
@@ -56,11 +60,12 @@ public class InitApp {
      */
     @StartUp
     public void mainStartup() {
-        // coding here to get all the information about service
+        List<ServiceDetails> allServiceDetails = dependencyContainer.getAllServiceDetails();
+        allServiceDetails.forEach(System.out::println);
     }
 
     private static void runStartUpMethod(Class<?> startupClass) {
-        ServiceDetails<?> serviceDetails = dependencyContainer.getSingleService(startupClass);
+        ServiceDetails serviceDetails = dependencyContainer.getSingleService(startupClass);
         if (serviceDetails == null) {
             throw new RuntimeException("");
         }

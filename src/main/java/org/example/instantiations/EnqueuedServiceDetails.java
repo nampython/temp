@@ -4,13 +4,13 @@ import org.example.container.ServiceDetails;
 
 public class EnqueuedServiceDetails {
 
-    private final ServiceDetails<?> serviceDetails;
+    private final ServiceDetails serviceDetails;
 
     private final Class<?>[] dependencies;
 
     private final Object[] dependencyInstances;
 
-    public ServiceDetails<?> getServiceDetails() {
+    public ServiceDetails getServiceDetails() {
         return this.serviceDetails;
     }
 
@@ -22,7 +22,7 @@ public class EnqueuedServiceDetails {
         return this.dependencyInstances;
     }
 
-    public EnqueuedServiceDetails(ServiceDetails<?> serviceDetails) {
+    public EnqueuedServiceDetails(ServiceDetails serviceDetails) {
         this.serviceDetails = serviceDetails;
         this.dependencies = serviceDetails.getTargetConstructor().getParameterTypes();
         this.dependencyInstances = new Object[this.dependencies.length];
