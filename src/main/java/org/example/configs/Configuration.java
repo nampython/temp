@@ -1,14 +1,14 @@
 package org.example.configs;
 
 public class Configuration {
-    private final AnnotationsConfiguration annotations;
+    private final ScanningConfiguration annotations;
     private final InstantiationConfiguration instantiationConfiguration;
     public Configuration() {
-        this.annotations = new AnnotationsConfiguration(this);
+        this.annotations = new ScanningConfiguration(this);
         this.instantiationConfiguration = new InstantiationConfiguration(this);
     }
 
-    public AnnotationsConfiguration getAnnotations() {
+    public ScanningConfiguration getAnnotations() {
         return this.annotations;
     }
 

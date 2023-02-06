@@ -9,10 +9,9 @@ import java.util.List;
 
 public interface DependencyContainer {
     void init(Collection<Class<?>> localClasses,Collection<ServiceDetails> servicesAndBeans, InstantiationService instantiationService) throws AlreadyInitializedException;
-
+    void update(Object service);
     <T> T reload(T service);
     <T> T reload(T service, boolean reloadDependantServices);
-
     <T> T getServiceInstance(Class<T> classService);
     ServiceDetails getSingleService(Class<?> serviceType);
     Collection<ServiceDetails> getAllServiceDetails();
