@@ -8,7 +8,7 @@ public class Configuration {
         this.instantiationConfiguration = new InstantiationConfiguration(this);
     }
 
-    public ScanningConfiguration getAnnotations() {
+    public ScanningConfiguration scanning() {
         return this.annotations;
     }
 

@@ -21,12 +21,10 @@ public class ServicesScanningServiceImpl implements ServicesScanningService {
      */
     private final ScanningConfiguration scanningConfiguration;
     private final Set<ServiceDetails> serviceDetailsStorage;
-    private final Map<Class<?>, Annotation> locatedClasses;
 
     public ServicesScanningServiceImpl(ScanningConfiguration scanningConfiguration) {
         this.scanningConfiguration = scanningConfiguration;
         this.serviceDetailsStorage = new LinkedHashSet<>();
-        this.locatedClasses = new HashMap<>();
         this.init();
     }
 
@@ -69,6 +67,7 @@ public class ServicesScanningServiceImpl implements ServicesScanningService {
      */
     private Map<Class<?>, Annotation> filterServiceClasses(Collection<Class<?>> scannedClasses) {
         final Set<Class<? extends  Annotation>> serviceAnnotations = this.scanningConfiguration.getServiceAnnotations();
+        final Map<Class<?>, Annotation> locatedClasses = new HashMap<>();
 
         for (Class<?> scannedClass : scannedClasses) {
             if (scannedClass.isInterface() || scannedClass.isEnum() || scannedClass.isAnnotation()) {
@@ -76,19 +75,21 @@ public class ServicesScanningServiceImpl implements ServicesScanningService {
             }
             for (Annotation annotation : scannedClass.getAnnotations()) {
                 if (serviceAnnotations.contains(annotation.annotationType())) {
-                    this.locatedClasses.put(scannedClass, annotation);
+                    locatedClasses.put(scannedClass, annotation);
                     break;
-                }
-
-                if (annotation.annotationType().isAnnotationPresent(AliasFor.class)) {
-                    final Class<? extends Annotation> aliasValue = annotation.annotationType().getAnnotation(AliasFor.class).value();
-                    if (serviceAnnotations.contains(aliasValue)) {
-                        this.locatedClasses.put(scannedClass, annotation);
-                    }
                 }
             }
         }
-        return this.locatedClasses;
+        this.scanningConfiguration.getAdditionalClasses().forEach((cls, a) -> {
+            Annotation annotation = null;
+            if (a != null && cls.isAnnotationPresent(a)) {
+                annotation = cls.getAnnotation(a);
+            }
+
+            locatedClasses.put(cls, annotation);
+        });
+
+        return locatedClasses;
     }
 
     /**
@@ -186,8 +187,5 @@ public class ServicesScanningServiceImpl implements ServicesScanningService {
     private void init() {
         this.scanningConfiguration.getBeanAnnotations().add(Bean.class);
         this.scanningConfiguration.getServiceAnnotations().add(Service.class);
-        this.scanningConfiguration.getAdditionalClasses().forEach((cls, a) -> {
-            this.locatedClasses.put(cls, cls.getAnnotation(a));
-        });
     }
 }

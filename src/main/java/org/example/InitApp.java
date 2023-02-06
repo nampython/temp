@@ -14,7 +14,6 @@ import org.example.instantiations.ServicesInstantiationServiceImpl;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
@@ -37,7 +36,6 @@ public class InitApp {
         dependencyContainer = new DependencyContainerImpl();
     }
 
-
     public static void main(String[] args) {
         run(InitApp.class);
     }
@@ -57,11 +55,8 @@ public class InitApp {
      */
     private static void run(Class<?> startupClass, Configuration configuration) {
         Set<Class<?>> locatedClass = getLocatedClass(startupClass);
-        ServicesScanningService serviceScanningService = new ServicesScanningServiceImpl(
-                configuration.getAnnotations()
-        );
         ServicesScanningService servicesScanningService = new ServicesScanningServiceImpl(
-                configuration.getAnnotations()
+                configuration.scanning()
         );
         InstantiationService instantiationService = new InstantiationServiceImpl();
 
