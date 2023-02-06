@@ -2,6 +2,7 @@ package org.example.configs;
 
 import java.lang.annotation.Annotation;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -20,9 +21,8 @@ public class AnnotationsConfiguration extends BaseSubConfiguration {
         return this;
     }
 
-    @SafeVarargs
-    public final AnnotationsConfiguration addServiceAnnotations(Class<? extends Annotation>... annotations) {
-        this.serviceAnnotations.addAll(Arrays.asList(annotations));
+    public  AnnotationsConfiguration addServiceAnnotations(Collection<Class<? extends Annotation>> annotations) {
+        this.serviceAnnotations.addAll(Set.copyOf(annotations));
         return this;
     }
 
@@ -31,9 +31,8 @@ public class AnnotationsConfiguration extends BaseSubConfiguration {
         return this;
     }
 
-    @SafeVarargs
-    public final AnnotationsConfiguration addBeanAnnotations(Class<? extends Annotation>... annotations) {
-        this.beanAnnotations.addAll(Arrays.asList((annotations)));
+    public AnnotationsConfiguration addBeanAnnotations(Collection<Class<? extends Annotation>> annotations) {
+        this.beanAnnotations.addAll(Set.copyOf(annotations));
         return this;
     }
 

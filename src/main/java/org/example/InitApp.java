@@ -14,6 +14,7 @@ import org.example.instantiations.ServicesInstantiationServiceImpl;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
@@ -79,7 +80,7 @@ public class InitApp {
      */
     @StartUp
     public void mainStartup() {
-        List<ServiceDetails> allServiceDetails = dependencyContainer.getAllServiceDetails();
+        List<ServiceDetails> allServiceDetails = (List<ServiceDetails>) dependencyContainer.getAllServiceDetails();
         allServiceDetails.forEach(System.out::println);
     }
 

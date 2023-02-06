@@ -13,7 +13,7 @@ import java.lang.reflect.Method;
 import java.util.Arrays;
 
 /**
- * {@link ObjectInstantiationService} implementation.
+ * {@link InstantiationService} implementation.
  */
 public class InstantiationServiceImpl implements InstantiationService{
     private static final String INVALID_PARAMETERS_COUNT_MSG = "Invalid parameters count for '%s'.";
@@ -31,13 +31,13 @@ public class InstantiationServiceImpl implements InstantiationService{
      */
     @Override
     public void createInstance(@NotNull ServiceDetails serviceDetails, Object @NotNull ... constructorParams) throws ServiceInstantiationException {
-        Constructor<?> targetConstructor = serviceDetails.getTargetConstructor();
+        final Constructor<?> targetConstructor = serviceDetails.getTargetConstructor();
         int parameterCount = targetConstructor.getParameterCount();
         if (!this.validParameterCount(parameterCount, constructorParams.length)) {
             throw new ServiceInstantiationException((String.format(INVALID_PARAMETERS_COUNT_MSG, serviceDetails.getServiceType().getName())));
         }
         try {
-            Object instanceServiceDetails = targetConstructor.newInstance(constructorParams);
+            final Object instanceServiceDetails = targetConstructor.newInstance(constructorParams);
             serviceDetails.setInstance(instanceServiceDetails);
             this.callPostConstructMethod(serviceDetails);
         } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
@@ -75,10 +75,10 @@ public class InstantiationServiceImpl implements InstantiationService{
      */
     @Override
     public void createBean(@NotNull ServiceBeanDetails serviceBeanDetails) throws BeanInstantiationException {
-        Method beanMethod = serviceBeanDetails.getOriginMethod();
-        Object instanceService = serviceBeanDetails.getRootService().getActualInstance();
+        final Method beanMethod = serviceBeanDetails.getOriginMethod();
+        final Object instanceService = serviceBeanDetails.getRootService().getActualInstance();
         try {
-            Object beanInstance = beanMethod.invoke(instanceService);
+            final Object beanInstance = beanMethod.invoke(instanceService);
             serviceBeanDetails.setInstance(beanInstance);
         } catch (IllegalAccessException | InvocationTargetException e) {
             throw new BeanInstantiationException(String.format(ERROR_INSTANTIATION_BEAN, serviceBeanDetails.getServiceType().getName()));

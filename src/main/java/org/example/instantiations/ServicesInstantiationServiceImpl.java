@@ -98,7 +98,6 @@ public class ServicesInstantiationServiceImpl implements ServicesInstantiationSe
                     bean,
                     serviceDetails);
             this.instantiationService.createBean(serviceBeanDetails);
-            serviceBeanDetails.setProxyInstance(serviceBeanDetails.getActualInstance());
             this.registerInstantiatedService(serviceBeanDetails);
         }
     }

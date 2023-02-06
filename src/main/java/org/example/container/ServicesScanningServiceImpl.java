@@ -183,7 +183,7 @@ public class ServicesScanningServiceImpl implements ServicesScanningService {
      * ones that the client might have provided.
      */
     private void init() {
-        this.annotationsConfiguration.addBeanAnnotation(Bean.class);
-        this.annotationsConfiguration.addServiceAnnotations(Service.class);
+        this.annotationsConfiguration.getBeanAnnotations().add(Bean.class);
+        this.annotationsConfiguration.getServiceAnnotations().add(Service.class);
     }
 }
