@@ -2,6 +2,8 @@ package org.example.instantiations;
 
 import org.example.container.ServiceDetails;
 
+import java.util.Arrays;
+
 /**
  * Simple POJO class that keeps information about a service, its
  * required dependencies and the ones that are already resolved.
@@ -15,6 +17,10 @@ public class EnqueuedServiceDetails {
      * Array of dependencies that the target constructor of the service requires.
      */
     private final Class<?>[] dependencies;
+    /**
+     * Keeps track for each dependency whether it is required
+     */
+    private final boolean[] dependenciesRequirement;
     /**
      * Array of instances matching the types in @dependencies.
      */
@@ -35,7 +41,9 @@ public class EnqueuedServiceDetails {
     public EnqueuedServiceDetails(ServiceDetails serviceDetails) {
         this.serviceDetails = serviceDetails;
         this.dependencies = serviceDetails.getTargetConstructor().getParameterTypes();
+        this.dependenciesRequirement = new boolean[this.dependencies.length];
         this.dependencyInstances = new Object[this.dependencies.length];
+        Arrays.fill(this.dependenciesRequirement, true);
     }
 
     /**
@@ -44,8 +52,8 @@ public class EnqueuedServiceDetails {
      * @return true of ann dependency instances are available.
      */
     public boolean isResolved() {
-        for (Object dependencyInstance : this.dependencyInstances) {
-            if (dependencyInstance == null) {
+        for (int i = 0; i < this.dependencyInstances.length; i++) {
+            if (this.dependencyInstances[i] == null && this.dependenciesRequirement[i]) {
                 return false;
             }
         }
@@ -80,6 +88,25 @@ public class EnqueuedServiceDetails {
                 return;
             }
         }
+    }
+
+    public void setDependencyNotNull(Class<?> dependencyType, boolean isRequired) {
+        for (int i = 0; i < this.dependenciesRequirement.length; i++) {
+            if (this.dependencies[i].isAssignableFrom(dependencyType)) {
+                this.dependenciesRequirement[i] = isRequired;
+                return;
+            }
+        }
+    }
+
+    public boolean isDependencyNotNull(Class<?> dependencyType) {
+        for (int i = 0; i < this.dependenciesRequirement.length; i++) {
+            if (this.dependencies[i].isAssignableFrom(dependencyType)) {
+                return this.dependenciesRequirement[i];
+            }
+        }
+
+        throw new IllegalArgumentException(String.format("Invalid dependency \"%s\".", dependencyType));
     }
 }
 

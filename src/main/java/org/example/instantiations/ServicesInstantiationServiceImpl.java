@@ -1,11 +1,15 @@
 package org.example.instantiations;
 
+import org.example.annotations.Nullable;
 import org.example.configs.InstantiationConfiguration;
 import org.example.container.ServiceDetails;
 import org.example.exceptions.ServiceInstantiationException;
+import org.example.util.AliasFinder;
 import org.example.util.ProxyUtils;
 
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
+import java.lang.reflect.Parameter;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -58,7 +62,7 @@ public class ServicesInstantiationServiceImpl implements ServicesInstantiationSe
     @Override
     public List<ServiceDetails> instantiateServicesAndBeans(Set<ServiceDetails> mappedClasses) {
         this.init(mappedClasses);
-        this.checkForMissingServices(mappedClasses);
+//        this.checkForMissingServices(mappedClasses);
 
         int maxNumberOfIterations = instantiationConfiguration.getMaximumAllowedIterations();
         int counter = 0;
@@ -66,7 +70,7 @@ public class ServicesInstantiationServiceImpl implements ServicesInstantiationSe
             if (counter > maxNumberOfIterations) {
                 throw new ServiceInstantiationException(String.format(MAX_NUMBER_OF_ALLOWED_ITERATIONS_REACHED, maxNumberOfIterations));
             }
-            EnqueuedServiceDetails enqueuedServiceDetail = this.enqueuedServiceDetails.removeFirst();
+            final EnqueuedServiceDetails enqueuedServiceDetail = this.enqueuedServiceDetails.removeFirst();
             if (enqueuedServiceDetail.isResolved()) {
                 ServiceDetails serviceDetails = enqueuedServiceDetail.getServiceDetails();
                 Object[] dependencyInstances = enqueuedServiceDetail.getDependencyInstances();
@@ -142,30 +146,30 @@ public class ServicesInstantiationServiceImpl implements ServicesInstantiationSe
         }
     }
 
-    /**
-     * Checks if the client has a service that will never be instantiated because
-     * it has a dependency that is not present in the application context.
-     *
-     * @param mappedServices set of all mapped services.
-     * @throws ServiceInstantiationException if a service has a dependency that is not
-     *                                       present in the application context.
-     */
-    private void checkForMissingServices(Set<ServiceDetails> mappedServices) throws ServiceInstantiationException {
-        for (ServiceDetails serviceDetails : mappedServices) {
-            Class<?>[] parameterTypesOfTargetConstructor = serviceDetails.getTargetConstructor().getParameterTypes();
-
-            for (Class<?> parameterType : parameterTypesOfTargetConstructor) {
-                if (!this.isAssignableTypePresent(parameterType)) {
-                    throw new ServiceInstantiationException(
-                            String.format(COULD_NOT_FIND_CONSTRUCTOR_PARAM_MSG,
-                                    serviceDetails.getServiceType().getName(),
-                                    parameterType.getName()
-                            )
-                    );
-                }
-            }
-        }
-    }
+//    /**
+//     * Checks if the client has a service that will never be instantiated because
+//     * it has a dependency that is not present in the application context.
+//     *
+//     * @param mappedServices set of all mapped services.
+//     * @throws ServiceInstantiationException if a service has a dependency that is not
+//     *                                       present in the application context.
+//     */
+//    private void checkForMissingServices(Set<ServiceDetails> mappedServices) throws ServiceInstantiationException {
+//        for (ServiceDetails serviceDetails : mappedServices) {
+//            Class<?>[] parameterTypesOfTargetConstructor = serviceDetails.getTargetConstructor().getParameterTypes();
+//
+//            for (Class<?> parameterType : parameterTypesOfTargetConstructor) {
+//                if (!this.isAssignableTypePresent(parameterType)) {
+//                    throw new ServiceInstantiationException(
+//                            String.format(COULD_NOT_FIND_CONSTRUCTOR_PARAM_MSG,
+//                                    serviceDetails.getServiceType().getName(),
+//                                    parameterType.getName()
+//                            )
+//                    );
+//                }
+//            }
+//        }
+//    }
 
     /**
      * @param parameterType given type.
@@ -189,6 +193,48 @@ public class ServicesInstantiationServiceImpl implements ServicesInstantiationSe
     private void init(Set<ServiceDetails> mappedClass) {
         this.clear();
         this.getAllAvailableServices(mappedClass);
+        this.setDependencyRequirements();
+    }
+    /**
+     * Checks if the client has a service that will never be instantiated because
+     * it has a dependency that is not present in the application context.
+     * <p>
+     * If {@link Nullable} annotation is present, the missing dependency is considered valid.
+     */
+    private void setDependencyRequirements() {
+        for (EnqueuedServiceDetails enqueuedService : this.enqueuedServiceDetails) {
+            for (Parameter parameter : enqueuedService.getServiceDetails().getTargetConstructor().getParameters()) {
+                final Class<?> dependency = parameter.getType();
+
+                if (this.isAssignableTypePresent(dependency)) {
+                    continue;
+                }
+
+                boolean hasAnnotation = false;
+                if (parameter.isAnnotationPresent(Nullable.class)) {
+                    enqueuedService.setDependencyNotNull(dependency, false);
+                    hasAnnotation = true;
+                } else {
+                    for (Annotation declaredAnnotation : parameter.getDeclaredAnnotations()) {
+                        final Class<? extends Annotation> aliasAnnotation = AliasFinder.getAliasAnnotation(declaredAnnotation, Nullable.class);
+                        if (aliasAnnotation != null) {
+                            enqueuedService.setDependencyNotNull(dependency, false);
+                            hasAnnotation = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (!hasAnnotation) {
+                    throw new ServiceInstantiationException(
+                            String.format(COULD_NOT_FIND_CONSTRUCTOR_PARAM_MSG,
+                                    enqueuedService.getServiceDetails().getServiceType().getName(),
+                                    dependency.getName()
+                            )
+                    );
+                }
+            }
+        }
     }
 
     /**

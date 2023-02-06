@@ -2,6 +2,7 @@ package org.example.container;
 
 import org.example.annotations.*;
 import org.example.configs.ScanningConfiguration;
+import org.example.util.AliasFinder;
 import org.example.util.ServiceDetailsConstructComparator;
 
 import java.lang.annotation.Annotation;
@@ -137,15 +138,11 @@ public class ServicesScanningServiceImpl implements ServicesScanningService {
                 return ctr;
             }
             for (Annotation declaredAnnotation : ctr.getDeclaredAnnotations()) {
-                final Class<? extends Annotation> aliasValue = declaredAnnotation
-                        .annotationType()
-                        .getAnnotation(AliasFor.class)
-                        .value();
-                if (aliasValue.isAnnotationPresent(Autowired.class)) {
+                final Class<? extends Annotation> aliasAnnotation = AliasFinder.getAliasAnnotation(declaredAnnotation, Autowired.class);
+                if (aliasAnnotation != null) {
                     ctr.setAccessible(true);
                     return ctr;
-                }
-            }
+                }            }
         }
         return locatedClass.getConstructors()[0];
     }
@@ -168,12 +165,10 @@ public class ServicesScanningServiceImpl implements ServicesScanningService {
                 return method;
             }
             for (Annotation declaredAnnotation : method.getDeclaredAnnotations()) {
-                if (declaredAnnotation.annotationType().isAnnotationPresent(AliasFor.class)) {
-                    final Class<? extends Annotation> aliasValue = declaredAnnotation.annotationType().getAnnotation(AliasFor.class).value();
-                    if (aliasValue == annotation) {
-                        method.setAccessible(true);
-                        return method;
-                    }
+                final Class<? extends Annotation> aliasAnnotation = AliasFinder.getAliasAnnotation(declaredAnnotation, annotation);
+                if (aliasAnnotation != null) {
+                    method.setAccessible(true);
+                    return method;
                 }
             }
         }

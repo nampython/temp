@@ -44,6 +44,11 @@ public class DependencyContainerImpl implements DependencyContainer{
         this.isInit = true;
     }
 
+    /**
+     * Replaces instance of a service with a new provided one.
+     *
+     * @param service new instance of a given service
+     */
     @Override
     public void update(Object service) {
         final ServiceDetails serviceDetails = this.getSingleService(service.getClass());
