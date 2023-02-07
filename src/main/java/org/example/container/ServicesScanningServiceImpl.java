@@ -7,6 +7,7 @@ import org.example.util.ServiceDetailsConstructComparator;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -50,7 +51,8 @@ public class ServicesScanningServiceImpl implements ServicesScanningService {
                     this.findSuitableConstructor(cls),
                     this.findVoidMethodWithZeroParamsAndAnnotations(cls, PostConstruct.class),
                     this.findVoidMethodWithZeroParamsAndAnnotations(cls, PreDestroy.class),
-                    this.findBeans(cls)
+                    this.findBeans(cls),
+                    this.findAutowireAnnotatedFields(cls, new ArrayList<>()).toArray(new Field[0])
             );
             this.serviceDetailsStorage.add(serviceDetails);
         }
@@ -67,7 +69,7 @@ public class ServicesScanningServiceImpl implements ServicesScanningService {
      * @return service annotated classes.
      */
     private Map<Class<?>, Annotation> filterServiceClasses(Collection<Class<?>> scannedClasses) {
-        final Set<Class<? extends  Annotation>> serviceAnnotations = this.scanningConfiguration.getServiceAnnotations();
+        final Set<Class<? extends Annotation>> serviceAnnotations = this.scanningConfiguration.getServiceAnnotations();
         final Map<Class<?>, Annotation> locatedClasses = new HashMap<>();
 
         for (Class<?> scannedClass : scannedClasses) {
@@ -119,7 +121,7 @@ public class ServicesScanningServiceImpl implements ServicesScanningService {
     }
 
     private boolean isNotBean(Method beanMethod) {
-        int countParameter =  beanMethod.getParameterCount();
+        int countParameter = beanMethod.getParameterCount();
         Class<?> beanReturnType = beanMethod.getReturnType();
         return countParameter != 0 || beanReturnType == void.class || beanReturnType == Void.class;
     }
@@ -133,22 +135,15 @@ public class ServicesScanningServiceImpl implements ServicesScanningService {
      */
     private Constructor<?> findSuitableConstructor(Class<?> locatedClass) {
         for (Constructor<?> ctr : locatedClass.getDeclaredConstructors()) {
-            if (ctr.isAnnotationPresent(Autowired.class)) {
+            if (AliasFinder.isAnnotationPresent(ctr.getDeclaredAnnotations(), Autowired.class)) {
                 ctr.setAccessible(true);
                 return ctr;
             }
-            for (Annotation declaredAnnotation : ctr.getDeclaredAnnotations()) {
-                final Class<? extends Annotation> aliasAnnotation = AliasFinder.getAliasAnnotation(declaredAnnotation, Autowired.class);
-                if (aliasAnnotation != null) {
-                    ctr.setAccessible(true);
-                    return ctr;
-                }            }
         }
         return locatedClass.getConstructors()[0];
     }
 
     /**
-     *
      * @param locatedClass
      * @param annotation
      * @return
@@ -160,16 +155,9 @@ public class ServicesScanningServiceImpl implements ServicesScanningService {
             if (countParams != 0 || (getReturnType != void.class && getReturnType != Void.class)) {
                 continue;
             }
-            if (method.isAnnotationPresent(annotation)) {
+            if (AliasFinder.isAnnotationPresent(method.getDeclaredAnnotations(), annotation)) {
                 method.setAccessible(true);
                 return method;
-            }
-            for (Annotation declaredAnnotation : method.getDeclaredAnnotations()) {
-                final Class<? extends Annotation> aliasAnnotation = AliasFinder.getAliasAnnotation(declaredAnnotation, annotation);
-                if (aliasAnnotation != null) {
-                    method.setAccessible(true);
-                    return method;
-                }
             }
         }
         if (locatedClass.getSuperclass() != null) {
@@ -178,6 +166,20 @@ public class ServicesScanningServiceImpl implements ServicesScanningService {
         return null;
     }
 
+    private List<Field> findAutowireAnnotatedFields(Class<?> cls, List<Field> fields) {
+        for (Field declaredField : cls.getDeclaredFields()) {
+            if (AliasFinder.isAnnotationPresent(declaredField.getDeclaredAnnotations(), Autowired.class)) {
+                declaredField.setAccessible(true);
+                fields.add(declaredField);
+            }
+        }
+
+        if (cls.getSuperclass() != null) {
+            return this.findAutowireAnnotatedFields(cls.getSuperclass(), fields);
+        }
+
+        return fields;
+    }
     /**
      * Adds the platform's default annotations for services and beans on top of the
      * ones that the client might have provided.

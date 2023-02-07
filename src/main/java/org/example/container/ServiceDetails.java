@@ -2,6 +2,7 @@ package org.example.container;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -55,6 +56,7 @@ public class ServiceDetails {
      * List of all services that depend on this one.
      */
     private final List<ServiceDetails> dependantServices;
+    private Field[] autowireAnnotatedFields;
 
     public ServiceDetails() {
         this.dependantServices = new ArrayList<>();
@@ -65,7 +67,8 @@ public class ServiceDetails {
                           Constructor<?> targetConstructor,
                           Method postConstructMethod,
                           Method preDestroyMethod,
-                          Method[] beans) {
+                          Method[] beans,
+                          Field[] autowireAnnotatedFields) {
         this();
         this.setServiceType(serviceType);
         this.setAnnotation(annotation);
@@ -73,8 +76,16 @@ public class ServiceDetails {
         this.setPostConstructMethod(postConstructMethod);
         this.setPreDestroyMethod(preDestroyMethod);
         this.setBeans(beans);
+        this.setAutowireAnnotatedFields(autowireAnnotatedFields);
     }
 
+    public Field[] getAutowireAnnotatedFields() {
+        return this.autowireAnnotatedFields;
+    }
+
+    public void setAutowireAnnotatedFields(Field[] autowireAnnotatedFields) {
+        this.autowireAnnotatedFields = autowireAnnotatedFields;
+    }
     public Class<?> getServiceType() {
         return this.serviceType;
     }

@@ -5,6 +5,7 @@ import org.example.instantiations.InstantiationService;
 import org.example.instantiations.ServiceBeanDetails;
 
 import java.lang.annotation.Annotation;
+import java.lang.reflect.Field;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -170,20 +171,53 @@ public class DependencyContainerImpl implements DependencyContainer{
 
     private <T> void afterDestroy(ServiceDetails serviceDetails) {
         if (serviceDetails instanceof ServiceBeanDetails) {
-            this.instantiationService.createBean((ServiceBeanDetails)serviceDetails);
+            ServiceBeanDetails serviceBeanDetails = (ServiceBeanDetails) serviceDetails;
+            this.instantiationService.createBean(serviceBeanDetails);
+
+            if (!serviceBeanDetails.hasProxyInstance()) {
+                //Since bean has no proxy, reload all dependant classes.
+                for (ServiceDetails dependantService : serviceDetails.getDependantServices()) {
+                    this.reload(dependantService);
+                }
+            }
         } else {
-            this.instantiationService.createInstance(serviceDetails, this.collectDependencies(serviceDetails));
+            this.instantiationService.createInstance(
+                    serviceDetails,
+                    this.collectDependencies(serviceDetails),
+                    this.collectAutowiredFieldsDependencies(serviceDetails)
+            );
+        }
+    }
+    /**
+     * Gets instances of all {@link Autowired} annotated dependencies for a given service.
+     *
+     * @param serviceDetails - the given service.
+     * @return array of instantiated dependencies.
+     */
+    private Object[] collectAutowiredFieldsDependencies(ServiceDetails serviceDetails) {
+        final Field[] autowireAnnotatedFields = serviceDetails.getAutowireAnnotatedFields();
+        final Object[] instances = new Object[autowireAnnotatedFields.length];
+
+        for (int i = 0; i < autowireAnnotatedFields.length; i++) {
+            instances[i] = this.getSingleService(autowireAnnotatedFields[i].getType());
         }
 
+        return instances;
     }
-
-    private <T> Object collectDependencies(ServiceDetails serviceDetails) {
+    /**
+     * Gets instances of all required dependencies for a given service.
+     *
+     * @param serviceDetails - the given service.
+     * @return array of instantiated dependencies.
+     */
+    private Object[] collectDependencies(ServiceDetails serviceDetails) {
         final Class<?>[] parameterTypes = serviceDetails.getTargetConstructor().getParameterTypes();
         final Object[] dependencyInstances = new Object[parameterTypes.length];
 
         for (int i = 0; i < parameterTypes.length; i++) {
-            dependencyInstances[i] = this.getServiceInstance(parameterTypes[i]);
+            dependencyInstances[i] = this.getSingleService(parameterTypes[i]);
         }
+
         return dependencyInstances;
     }
 

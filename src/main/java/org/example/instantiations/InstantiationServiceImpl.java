@@ -8,6 +8,7 @@ import org.example.exceptions.ServiceInstantiationException;
 import org.jetbrains.annotations.NotNull;
 
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Arrays;
@@ -30,7 +31,7 @@ public class InstantiationServiceImpl implements InstantiationService{
      * @param constructorParams instantiated dependencies.
      */
     @Override
-    public void createInstance(@NotNull ServiceDetails serviceDetails, Object @NotNull ... constructorParams) throws ServiceInstantiationException {
+    public void createInstance(@NotNull ServiceDetails serviceDetails, Object[] constructorParams, Object[] autowiredFieldInstances) throws ServiceInstantiationException {
         final Constructor<?> targetConstructor = serviceDetails.getTargetConstructor();
         int parameterCount = targetConstructor.getParameterCount();
         if (!this.validParameterCount(parameterCount, constructorParams.length)) {
@@ -39,12 +40,25 @@ public class InstantiationServiceImpl implements InstantiationService{
         try {
             final Object instanceServiceDetails = targetConstructor.newInstance(constructorParams);
             serviceDetails.setInstance(instanceServiceDetails);
+            this.setAutowiredFieldInstances(serviceDetails, autowiredFieldInstances);
             this.callPostConstructMethod(serviceDetails);
         } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
             throw new ServiceInstantiationException(String.format(ERROR_INSTANTIATION_OBJECT,serviceDetails.getServiceType().getName(), Arrays.toString(constructorParams)));
         }
     }
+    /**
+     * Iterates all {@link Autowired} annotated fields and sets them a given instance.
+     *
+     * @param serviceDetails          - given service details.
+     * @param autowiredFieldInstances - field instances.
+     */
+    private void setAutowiredFieldInstances(ServiceDetails serviceDetails, Object[] autowiredFieldInstances) throws IllegalAccessException {
+        final Field[] autowireAnnotatedFields = serviceDetails.getAutowireAnnotatedFields();
 
+        for (int i = 0; i < autowireAnnotatedFields.length; i++) {
+            autowireAnnotatedFields[i].set(serviceDetails.getActualInstance(), autowiredFieldInstances[i]);
+        }
+    }
     /**
      * Invokes post construct method if one is present for a given service.
      *

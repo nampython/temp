@@ -8,6 +8,7 @@ import org.example.util.AliasFinder;
 import org.example.util.ProxyUtils;
 
 import java.lang.annotation.Annotation;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.*;
@@ -21,6 +22,7 @@ import java.util.stream.Collectors;
 public class ServicesInstantiationServiceImpl implements ServicesInstantiationService {
     private static final String MAX_NUMBER_OF_ALLOWED_ITERATIONS_REACHED = "Maximum number of allowed iterations was reached '%s'. Remaining services: \n %s";
     private static final String COULD_NOT_FIND_CONSTRUCTOR_PARAM_MSG = "Could not create instance of '%s'. Parameter '%s' implementation was not found";
+    private static final String COULD_NOT_FIND_FIELD_PARAM_MSG = "Could not create instance of '%s'. Implementation was not found for Autowired field '%s'.";
     private final InstantiationService instantiationService;
     /**
      * Configuration containing the maximum number or allowed iterations.
@@ -74,7 +76,7 @@ public class ServicesInstantiationServiceImpl implements ServicesInstantiationSe
             if (enqueuedServiceDetail.isResolved()) {
                 ServiceDetails serviceDetails = enqueuedServiceDetail.getServiceDetails();
                 Object[] dependencyInstances = enqueuedServiceDetail.getDependencyInstances();
-                this.createInstance(serviceDetails, dependencyInstances);
+                this.instantiationService.createInstance(serviceDetails, dependencyInstances, enqueuedServiceDetail.getFieldDependencyInstances());
                 ProxyUtils.createProxyInstance(serviceDetails, dependencyInstances);
                 this.registerInstantiatedService(serviceDetails);
                 this.registerBeans(serviceDetails);
@@ -115,7 +117,7 @@ public class ServicesInstantiationServiceImpl implements ServicesInstantiationSe
      * @param serviceDetails - the created service.
      */
     private void registerInstantiatedService(ServiceDetails serviceDetails) {
-        if (!(serviceDetails instanceof  ServiceBeanDetails)) {
+        if (!(serviceDetails instanceof ServiceBeanDetails)) {
             this.updatedDependantServices(serviceDetails);
         }
         this.instantiatedServices.add(serviceDetails);
@@ -129,6 +131,7 @@ public class ServicesInstantiationServiceImpl implements ServicesInstantiationSe
             }
         }
     }
+
     /**
      * Gets all dependencies of the given new service.
      * <p>
@@ -187,10 +190,6 @@ public class ServicesInstantiationServiceImpl implements ServicesInstantiationSe
         return false;
     }
 
-    private void createInstance(ServiceDetails serviceDetails, Object ... dependencyInstances) {
-        this.instantiationService.createInstance(serviceDetails, dependencyInstances);
-    }
-
     private void init(Set<ServiceDetails> mappedClass) {
         this.clear();
         this.getAllAvailableServices(mappedClass);
@@ -206,6 +205,7 @@ public class ServicesInstantiationServiceImpl implements ServicesInstantiationSe
         }
         this.setDependencyRequirements();
     }
+
     /**
      * Checks if the client has a service that will never be instantiated because
      * it has a dependency that is not present in the application context.
@@ -221,26 +221,22 @@ public class ServicesInstantiationServiceImpl implements ServicesInstantiationSe
                     continue;
                 }
 
-                boolean hasAnnotation = false;
-                if (parameter.isAnnotationPresent(Nullable.class)) {
+                if (AliasFinder.isAnnotationPresent(parameter.getDeclaredAnnotations(), Nullable.class)) {
                     enqueuedService.setDependencyNotNull(dependency, false);
-                    hasAnnotation = true;
-                } else {
-                    for (Annotation declaredAnnotation : parameter.getDeclaredAnnotations()) {
-                        final Class<? extends Annotation> aliasAnnotation = AliasFinder.getAliasAnnotation(declaredAnnotation, Nullable.class);
-                        if (aliasAnnotation != null) {
-                            enqueuedService.setDependencyNotNull(dependency, false);
-                            hasAnnotation = true;
-                            break;
-                        }
-                    }
-                }
-
-                if (!hasAnnotation) {
+                } else throw new ServiceInstantiationException(
+                        String.format(COULD_NOT_FIND_CONSTRUCTOR_PARAM_MSG,
+                                enqueuedService.getServiceDetails().getServiceType().getName(),
+                                dependency.getName()
+                        )
+                );
+            }
+            //Check for @Autowired annotated fields.
+            for (Field autowireAnnotatedField : enqueuedService.getServiceDetails().getAutowireAnnotatedFields()) {
+                if (!this.isAssignableTypePresent(autowireAnnotatedField.getType())) {
                     throw new ServiceInstantiationException(
-                            String.format(COULD_NOT_FIND_CONSTRUCTOR_PARAM_MSG,
+                            String.format(COULD_NOT_FIND_FIELD_PARAM_MSG,
                                     enqueuedService.getServiceDetails().getServiceType().getName(),
-                                    dependency.getName()
+                                    autowireAnnotatedField.getType().getName()
                             )
                     );
                 }
@@ -263,6 +259,7 @@ public class ServicesInstantiationServiceImpl implements ServicesInstantiationSe
      * Get All ServiceDetails used to check whether a serviceDetails is correct or wrong
      * a serviceDetails correct when the type of constructor in serviceDetails inside the container
      * Container is all serviceDetails
+     *
      * @param mappedClass
      */
     private void getAllAvailableServices(Set<ServiceDetails> mappedClass) {

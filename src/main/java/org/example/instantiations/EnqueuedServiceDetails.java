@@ -2,6 +2,7 @@ package org.example.instantiations;
 
 import org.example.container.ServiceDetails;
 
+import java.lang.reflect.Field;
 import java.util.Arrays;
 
 /**
@@ -38,14 +39,41 @@ public class EnqueuedServiceDetails {
         return this.dependencyInstances;
     }
 
+    /**
+     * Array of dependencies that are required from {@link Autowired} annotated fields.
+     */
+    private final Class<?>[] fieldDependencies;
+
+    /**
+     * Array of instances matching the types in @fieldDependencies
+     */
+    private final Object[] fieldDependencyInstances;
+
     public EnqueuedServiceDetails(ServiceDetails serviceDetails) {
         this.serviceDetails = serviceDetails;
         this.dependencies = serviceDetails.getTargetConstructor().getParameterTypes();
         this.dependenciesRequirement = new boolean[this.dependencies.length];
         this.dependencyInstances = new Object[this.dependencies.length];
+        this.fieldDependencies = new Class[this.serviceDetails.getAutowireAnnotatedFields().length];
+        this.fieldDependencyInstances = new Object[this.serviceDetails.getAutowireAnnotatedFields().length];
         Arrays.fill(this.dependenciesRequirement, true);
+        this.fillFieldDependencyTypes();
+
+    }
+    private void fillFieldDependencyTypes() {
+        final Field[] autowireAnnotatedFields = this.serviceDetails.getAutowireAnnotatedFields();
+
+        for (int i = 0; i < autowireAnnotatedFields.length; i++) {
+            this.fieldDependencies[i] = autowireAnnotatedFields[i].getType();
+        }
+    }
+    public Class<?>[] getFieldDependencies() {
+        return this.fieldDependencies;
     }
 
+    public Object[] getFieldDependencyInstances() {
+        return this.fieldDependencyInstances;
+    }
     /**
      * Checks if all dependencies have corresponding instances.
      *
@@ -54,6 +82,11 @@ public class EnqueuedServiceDetails {
     public boolean isResolved() {
         for (int i = 0; i < this.dependencyInstances.length; i++) {
             if (this.dependencyInstances[i] == null && this.dependenciesRequirement[i]) {
+                return false;
+            }
+        }
+        for (Object fieldDependencyInstance : this.fieldDependencyInstances) {
+            if (fieldDependencyInstance == null) {
                 return false;
             }
         }
@@ -73,6 +106,11 @@ public class EnqueuedServiceDetails {
                 return true;
             }
         }
+        for (Class<?> fieldDependency : this.fieldDependencies) {
+            if (fieldDependency.isAssignableFrom(dependencyType)) {
+                return true;
+            }
+        }
         return false;
     }
     /**
@@ -82,19 +120,16 @@ public class EnqueuedServiceDetails {
      * @param instance the given dependency instance.
      */
     public void addDependencyInstance(Object instance) {
+        final Class<?> instanceType = instance.getClass();
         for (int i = 0; i < this.dependencies.length; i++) {
-            if (dependencies[i].isAssignableFrom(instance.getClass())) {
+            if (dependencies[i].isAssignableFrom(instanceType)) {
                 this.dependencyInstances[i] = instance;
                 return;
             }
         }
-    }
-
-    public void setDependencyNotNull(Class<?> dependencyType, boolean isRequired) {
-        for (int i = 0; i < this.dependenciesRequirement.length; i++) {
-            if (this.dependencies[i].isAssignableFrom(dependencyType)) {
-                this.dependenciesRequirement[i] = isRequired;
-                return;
+        for (int i = 0; i < this.fieldDependencies.length; i++) {
+            if (this.fieldDependencies[i].isAssignableFrom(instanceType)) {
+                this.fieldDependencyInstances[i] = instance;
             }
         }
     }
@@ -109,6 +144,14 @@ public class EnqueuedServiceDetails {
         throw new IllegalArgumentException(String.format("Invalid dependency \"%s\".", dependencyType));
     }
 
+    public void setDependencyNotNull(Class<?> dependencyType, boolean isRequired) {
+        for (int i = 0; i < this.dependenciesRequirement.length; i++) {
+            if (this.dependencies[i].isAssignableFrom(dependencyType)) {
+                this.dependenciesRequirement[i] = isRequired;
+                return;
+            }
+        }
+    }
     @Override
     public String toString() {
         return this.serviceDetails.getServiceType().getName();

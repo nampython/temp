@@ -18,11 +18,9 @@ import java.util.Set;
 public class ClassLocatorForDirectoryImpl implements ClassLocator {
     private static final String INVALID_DIRECTORY_MSG = "Invalid directory '%s'.";
     private final Set<Class<?>> locatedClasses;
-    private final ClassLoader classLoader;
 
-    public ClassLocatorForDirectoryImpl(Configuration configuration) {
+    public ClassLocatorForDirectoryImpl() {
         this.locatedClasses = new HashSet<>();
-        this.classLoader = configuration.scanning().getClassLoader();
     }
 
     /**
@@ -83,7 +81,7 @@ public class ClassLocatorForDirectoryImpl implements ClassLocator {
             final String className = packageName + file
                     .getName()
                     .replace(Constants.JAVA_BINARY_EXTENSION, "");
-            this.locatedClasses.add(Class.forName(className, true, this.classLoader));
+            this.locatedClasses.add(Class.forName(className, true, Thread.currentThread().getContextClassLoader()));
         }
     }
 

@@ -16,10 +16,7 @@ import org.example.instantiations.ServicesInstantiationServiceImpl;
 import java.io.File;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Application starting point.
@@ -68,10 +65,26 @@ public class InitApp {
 
         );
 
-        final Set<Class<?>> locatedClasses = locateClasses(startupDirectories, configuration);
+        final Set<Class<?>> locatedClasses = new HashSet<>();
+        final Set<ServiceDetails> mappedServices = new HashSet<>();
+        final List<ServiceDetails> serviceDetails = new ArrayList<>();
 
-        final Set<ServiceDetails> mappedServices = scanningService.mappingClass(locatedClasses);
-        final List<ServiceDetails> serviceDetails = instantiationService.instantiateServicesAndBeans(mappedServices);
+
+        final Thread runner = new Thread(() -> {
+            locatedClasses.addAll(locateClasses(startupDirectories));
+            mappedServices.addAll(scanningService.mappingClass(locatedClasses));
+            serviceDetails.addAll(instantiationService.instantiateServicesAndBeans(mappedServices));
+        });
+
+        runner.setContextClassLoader(configuration.scanning().getClassLoader());
+        runner.start();
+        try {
+            runner.join();
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+
+
         final DependencyContainer dependencyContainer = new DependencyContainerImpl();
         dependencyContainer.init(locatedClasses, serviceDetails, objectInstantiationService);
 
@@ -93,14 +106,32 @@ public class InitApp {
 //        runStartUpMethod(startupClass);
 //    }
 
-    private static Set<Class<?>> locateClasses(File[] startupDirectories, Configuration configuration) {
+//    private static Set<Class<?>> locateClasses(File[] startupDirectories, Configuration configuration) {
+//        final Set<Class<?>> locatedClasses = new HashSet<>();
+//        final DirectoryResolver directoryResolver = new DirectoryResolverImpl();
+//
+//        for (File startupDirectory : startupDirectories) {
+//            final Directory directory = directoryResolver.resolveDirectory(startupDirectory);
+//
+//            ClassLocator classLocator = new ClassLocatorForDirectoryImpl(configuration);
+//            if (directory.getDirectoryType() == DirectoryType.JAR_FILE) {
+//                classLocator = new ClassLocatorForJarFile();
+//            }
+//
+//            locatedClasses.addAll(classLocator.locatedClass(directory.getDirectory()));
+//        }
+//
+//        return locatedClasses;
+//    }
+
+    private static Set<Class<?>> locateClasses(File[] startupDirectories) {
         final Set<Class<?>> locatedClasses = new HashSet<>();
         final DirectoryResolver directoryResolver = new DirectoryResolverImpl();
 
         for (File startupDirectory : startupDirectories) {
             final Directory directory = directoryResolver.resolveDirectory(startupDirectory);
 
-            ClassLocator classLocator = new ClassLocatorForDirectoryImpl(configuration);
+            ClassLocator classLocator = new ClassLocatorForDirectoryImpl();
             if (directory.getDirectoryType() == DirectoryType.JAR_FILE) {
                 classLocator = new ClassLocatorForJarFile();
             }
@@ -110,8 +141,6 @@ public class InitApp {
 
         return locatedClasses;
     }
-
-
     /**
      *
      */
