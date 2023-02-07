@@ -1,5 +1,6 @@
 package org.example.container;
 
+import org.example.configs.Configuration;
 import org.example.constant.Constants;
 import org.example.exceptions.ClassLocationException;
 
@@ -19,9 +20,9 @@ public class ClassLocatorForDirectoryImpl implements ClassLocator {
     private final Set<Class<?>> locatedClasses;
     private final ClassLoader classLoader;
 
-    public ClassLocatorForDirectoryImpl(ClassLoader classLoader) {
+    public ClassLocatorForDirectoryImpl(Configuration configuration) {
         this.locatedClasses = new HashSet<>();
-        this.classLoader = classLoader;
+        this.classLoader = configuration.scanning().getClassLoader();
     }
 
     /**

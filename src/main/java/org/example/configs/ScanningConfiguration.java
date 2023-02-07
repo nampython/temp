@@ -7,14 +7,24 @@ public class ScanningConfiguration extends BaseSubConfiguration {
     private final Set<Class<? extends Annotation>> serviceAnnotations;
     private final Set<Class<? extends Annotation>> beanAnnotations;
     private final Map<Class<?>, Class<? extends Annotation>> additionalClasses;
+    private ClassLoader classLoader;
 
     public ScanningConfiguration(Configuration configuration) {
         super(configuration);
         this.serviceAnnotations = new HashSet<>();
         this.beanAnnotations = new HashSet<>();
         this.additionalClasses = new HashMap<>();
+        this.classLoader = Thread.currentThread().getContextClassLoader();
     }
 
+    public ScanningConfiguration setClassLoader(ClassLoader classLoader) {
+        this.classLoader = classLoader;
+        return this;
+    }
+
+    public ClassLoader getClassLoader() {
+        return this.classLoader;
+    }
     public ScanningConfiguration addServiceAnnotation(Class<? extends Annotation> annotation) {
         this.serviceAnnotations.add(annotation);
         return this;
