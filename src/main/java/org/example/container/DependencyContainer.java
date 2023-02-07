@@ -11,9 +11,12 @@ public interface DependencyContainer {
     void init(Collection<Class<?>> localClasses,Collection<ServiceDetails> servicesAndBeans, InstantiationService instantiationService) throws AlreadyInitializedException;
     void update(Object service);
     void update(Class<?> serviceType, Object serviceInstance);
+    void update(Class<?> serviceType, Object serviceInstance, boolean destroyOldInstance);
+
     <T> T reload(T service);
     <T> T reload(T service, boolean reloadDependantServices);
     <T> T getServiceInstance(Class<T> classService);
+    <T> T getNewInstance(Class<?> serviceType);
 
     ServiceDetails getSingleService(Class<?> serviceType);
     Collection<ServiceDetails> getAllServiceDetails();

@@ -1,5 +1,6 @@
 package org.example.instantiations;
 
+import org.example.annotations.Bean;
 import org.example.annotations.Nullable;
 import org.example.configs.InstantiationConfiguration;
 import org.example.container.ServiceDetails;
@@ -102,7 +103,9 @@ public class ServicesInstantiationServiceImpl implements ServicesInstantiationSe
             ServiceBeanDetails serviceBeanDetails = new ServiceBeanDetails(
                     bean.getReturnType(),
                     bean,
-                    serviceDetails);
+                    serviceDetails,
+                    AliasFinder.getAnnotation(bean.getDeclaredAnnotations(), Bean.class)
+            );
             this.instantiationService.createBean(serviceBeanDetails);
             ProxyUtils.createBeanProxyInstance(serviceBeanDetails);
             this.registerInstantiatedService(serviceBeanDetails);

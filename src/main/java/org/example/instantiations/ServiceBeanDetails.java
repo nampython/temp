@@ -2,6 +2,7 @@ package org.example.instantiations;
 
 import org.example.container.ServiceDetails;
 
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 
 /**
@@ -19,11 +20,12 @@ public class ServiceBeanDetails extends ServiceDetails {
      */
     private final ServiceDetails rootService;
 
-    public ServiceBeanDetails(Class<?> serviceType, Method beanMethod, ServiceDetails serviceDetails) {
+    public ServiceBeanDetails(Class<?> serviceType, Method beanMethod, ServiceDetails serviceDetails, Annotation annotation) {
         this.setServiceType(serviceType);
         this.setBeans(new Method[0]);
         this.beanMethod = beanMethod;
         this.rootService = serviceDetails;
+        this.setAnnotation(annotation);
     }
     public Method getOriginMethod() {
         return this.beanMethod;

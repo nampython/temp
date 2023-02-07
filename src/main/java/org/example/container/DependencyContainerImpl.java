@@ -63,12 +63,19 @@ public class DependencyContainerImpl implements DependencyContainer{
 
     @Override
     public void update(Class<?> serviceType, Object serviceInstance) {
+        this.update(serviceType, serviceInstance, true);
+    }
+
+    @Override
+    public void update(Class<?> serviceType, Object serviceInstance, boolean destroyOldInstance) {
         final ServiceDetails serviceDetails = this.getSingleService(serviceType);
         if (serviceDetails == null) {
             throw new IllegalArgumentException(String.format(SERVICE_NOT_FOUND_FORMAT, serviceType.getName()));
         }
-        this.instantiationService.destroyInstance(serviceDetails);
-        serviceDetails.setInstance(serviceInstance);
+
+        if (destroyOldInstance) {
+            this.instantiationService.destroyInstance(serviceDetails);
+        }
     }
 
 
@@ -87,6 +94,34 @@ public class DependencyContainerImpl implements DependencyContainer{
             return (T) serviceDetails.getProxyInstance();
         }
         return null;
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public <T> T getNewInstance(Class<?> serviceType) {
+        final ServiceDetails serviceDetails = this.getSingleService(serviceType);
+
+        if (serviceDetails == null) {
+            throw new IllegalArgumentException(String.format(SERVICE_NOT_FOUND_FORMAT, serviceType.getName()));
+        }
+
+        final Object oldInstance = serviceDetails.getActualInstance();
+
+        if (serviceDetails instanceof ServiceBeanDetails) {
+            ServiceBeanDetails serviceBeanDetails = (ServiceBeanDetails) serviceDetails;
+            this.instantiationService.createBean(serviceBeanDetails);
+        } else {
+            this.instantiationService.createInstance(
+                    serviceDetails,
+                    this.collectDependencies(serviceDetails),
+                    this.collectAutowiredFieldsDependencies(serviceDetails)
+            );
+        }
+
+        final Object newInstance = serviceDetails.getActualInstance();
+        serviceDetails.setInstance(oldInstance);
+
+        return (T) newInstance;
     }
 
     /**

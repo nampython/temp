@@ -109,8 +109,10 @@ public class ServicesScanningServiceImpl implements ServicesScanningService {
             if (this.isNotBean(method)) {
                 continue;
             }
+            final Annotation[] methodDeclaredAnnotations = method.getDeclaredAnnotations();
+
             for (Class<? extends Annotation> beanAnnotation : beanAnnotations) {
-                if (method.isAnnotationPresent(beanAnnotation)) {
+                if (AliasFinder.isAnnotationPresent(methodDeclaredAnnotations, beanAnnotation)) {
                     method.setAccessible(true);
                     beanMethods.add(method);
                     break;

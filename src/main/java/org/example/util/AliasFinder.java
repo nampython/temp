@@ -28,13 +28,17 @@ public class AliasFinder {
         return false;
     }
 
-    public static boolean isAnnotationPresent(Annotation[] annotations, Class<? extends Annotation> requiredAnnotation) {
+    public static Annotation getAnnotation(Annotation[] annotations, Class<? extends Annotation> requiredAnnotation) {
         for (Annotation annotation : annotations) {
-            if (annotation.annotationType() == requiredAnnotation) {
-                return true;
+            if (annotation.annotationType() == requiredAnnotation || getAliasAnnotation(annotation, requiredAnnotation) != null) {
+                return annotation;
             }
         }
 
-        return isAliasAnnotationPresent(annotations, requiredAnnotation);
+        return null;
+    }
+    public static boolean isAnnotationPresent(Annotation[] annotations, Class<? extends Annotation> requiredAnnotation) {
+        return getAnnotation(annotations, requiredAnnotation) != null;
+
     }
 }
