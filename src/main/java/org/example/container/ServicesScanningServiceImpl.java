@@ -1,5 +1,7 @@
 package org.example.container;
 
+
+
 import org.example.annotations.*;
 import org.example.configs.ScanningConfiguration;
 import org.example.exceptions.ClassLocationException;
@@ -10,7 +12,6 @@ import org.example.model.MethodAspectHandlerDto;
 import org.example.util.AliasFinder;
 import org.example.util.AnnotationUtils;
 import org.example.util.GenericsUtils;
-import org.example.util.ServiceDetailsConstructComparator;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Constructor;
@@ -18,7 +19,6 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * {@link ServicesScanningService} implementation.
@@ -26,21 +26,20 @@ import java.util.stream.Collectors;
  * annotation or one provided by the client and then collects data for that class.
  */
 public class ServicesScanningServiceImpl implements ServicesScanningService {
+
     /**
      * Configuration containing annotations provided by the client.
      */
-    private final ScanningConfiguration scanningConfiguration;
-    private final Set<ServiceDetails> serviceDetailsStorage;
+    private final ScanningConfiguration configuration;
 
-    public ServicesScanningServiceImpl(ScanningConfiguration scanningConfiguration) {
-        this.scanningConfiguration = scanningConfiguration;
-        this.serviceDetailsStorage = new LinkedHashSet<>();
+    public ServicesScanningServiceImpl(ScanningConfiguration configuration) {
+        this.configuration = configuration;
         this.init();
     }
 
     /**
-     * Iterates all given classes and filters those that have {@link Service} annotation
-     * or one prided by the client and collects details for those classes.
+     * Iterates scanned classes with @{@link Service} or user specified annotation
+     * and creates a {@link ServiceDetails} object with the collected information.
      *
      * @param locatedClasses given set of classes.
      * @return set or services and their collected details.
@@ -48,33 +47,108 @@ public class ServicesScanningServiceImpl implements ServicesScanningService {
     @Override
     public Set<ServiceDetails> mappingClass(Set<Class<?>> locatedClasses) {
         final Map<Class<?>, Annotation> onlyServiceClasses = this.filterServiceClasses(locatedClasses);
+
         final Set<ServiceDetails> serviceDetailsStorage = new HashSet<>();
         final Map<Class<? extends Annotation>, ServiceDetails> aspectHandlerServices = new HashMap<>();
 
         for (Map.Entry<Class<?>, Annotation> serviceAnnotationEntry : onlyServiceClasses.entrySet()) {
             final Class<?> cls = serviceAnnotationEntry.getKey();
             final Annotation annotation = serviceAnnotationEntry.getValue();
+
             final ServiceDetails serviceDetails = new ServiceDetails(
                     cls,
                     annotation,
                     this.findSuitableConstructor(cls),
                     this.findInstanceName(cls.getDeclaredAnnotations()),
-                    this.findVoidMethodWithZeroParamsAndAnnotations(cls, PostConstruct.class),
-                    this.findVoidMethodWithZeroParamsAndAnnotations(cls, PreDestroy.class),
+                    this.findVoidMethodWithZeroParamsAndAnnotations(PostConstruct.class, cls),
+                    this.findVoidMethodWithZeroParamsAndAnnotations(PreDestroy.class, cls),
                     this.findScope(cls),
                     this.findAutowireAnnotatedFields(cls, new ArrayList<>()).toArray(new Field[0])
             );
+
             this.maybeAddAspectHandlerService(serviceDetails, aspectHandlerServices);
+
             serviceDetails.setBeans(this.findBeans(serviceDetails));
             this.notifyServiceDetailsCreated(serviceDetails);
 
-            this.serviceDetailsStorage.add(serviceDetails);
+            serviceDetailsStorage.add(serviceDetails);
         }
+
         this.applyAspectHandlerServices(aspectHandlerServices, serviceDetailsStorage);
-        return this.serviceDetailsStorage
-                .stream()
-                .sorted(new ServiceDetailsConstructComparator())
-                .collect(Collectors.toCollection(LinkedHashSet::new));
+        return serviceDetailsStorage;
+    }
+
+    /**
+     * Iterates all given classes and filters those that have {@link Service} annotation
+     * or one prided by the client.
+     *
+     * @return service annotated classes.
+     */
+    private Map<Class<?>, Annotation> filterServiceClasses(Collection<Class<?>> scannedClasses) {
+        final Set<Class<? extends Annotation>> serviceAnnotations = this.configuration.getServiceAnnotations();
+        final Map<Class<?>, Annotation> locatedClasses = new HashMap<>();
+
+        for (Class<?> cls : scannedClasses) {
+            if (cls.isInterface() || cls.isEnum() || cls.isAnnotation()) {
+                continue;
+            }
+
+            for (Annotation annotation : cls.getAnnotations()) {
+                if (serviceAnnotations.contains(annotation.annotationType())) {
+                    locatedClasses.put(cls, annotation);
+                    break;
+                }
+            }
+        }
+
+        this.configuration.getAdditionalClasses().forEach((cls, a) -> {
+            Annotation annotation = null;
+            if (a != null && cls.isAnnotationPresent(a)) {
+                annotation = cls.getAnnotation(a);
+            }
+
+            locatedClasses.put(cls, annotation);
+        });
+
+        return locatedClasses;
+    }
+
+    /**
+     * Looks for a constructor from the given class that has {@link Autowired} annotation
+     * or gets the first one.
+     *
+     * @param cls - the given class.
+     * @return suitable constructor.
+     */
+    private Constructor<?> findSuitableConstructor(Class<?> cls) {
+        for (Constructor<?> ctr : cls.getDeclaredConstructors()) {
+            if (AliasFinder.isAnnotationPresent(ctr.getDeclaredAnnotations(), Autowired.class)) {
+                ctr.setAccessible(true);
+                return ctr;
+            }
+        }
+
+        return cls.getConstructors()[0];
+    }
+
+    private Method findVoidMethodWithZeroParamsAndAnnotations(Class<? extends Annotation> annotation, Class<?> cls) {
+        for (Method method : cls.getDeclaredMethods()) {
+            if (method.getParameterCount() != 0 ||
+                    (method.getReturnType() != void.class && method.getReturnType() != Void.class)) {
+                continue;
+            }
+
+            if (AliasFinder.isAnnotationPresent(method.getDeclaredAnnotations(), annotation)) {
+                method.setAccessible(true);
+                return method;
+            }
+        }
+
+        if (cls.getSuperclass() != null) {
+            return this.findVoidMethodWithZeroParamsAndAnnotations(annotation, cls.getSuperclass());
+        }
+
+        return null;
     }
 
     /**
@@ -104,92 +178,13 @@ public class ServicesScanningServiceImpl implements ServicesScanningService {
     }
 
     /**
-     * Updates {@link ServiceDetails} class of any service that might have method annotated with annotation that is
-     * a part of a method aspect.
-     *
-     * @param aspectHandlerServices -
-     * @param serviceDetails        -
-     */
-    private void applyAspectHandlerServices(Map<Class<? extends Annotation>, ServiceDetails> aspectHandlerServices,
-                                            Set<ServiceDetails> serviceDetails) {
-        if (aspectHandlerServices.isEmpty()) {
-            return;
-        }
-
-        for (ServiceDetails service : serviceDetails) {
-            final Map<Method, List<MethodAspectHandlerDto>> aspectsPerMethod = new HashMap<>();
-
-            for (Method method : service.getServiceType().getDeclaredMethods()) {
-                for (Annotation annotation : method.getAnnotations()) {
-                    if (aspectHandlerServices.containsKey(annotation.annotationType())) {
-                        aspectsPerMethod.putIfAbsent(method, new ArrayList<>());
-                        aspectsPerMethod.get(method).add(new MethodAspectHandlerDto(
-                                aspectHandlerServices.get(annotation.annotationType()),
-                                annotation.annotationType()
-                        ));
-                    }
-                }
-            }
-
-            if (aspectsPerMethod.isEmpty()) {
-                continue;
-            }
-
-            service.setScopeType(ScopeType.PROXY);
-            service.setMethodAspectHandlers(aspectsPerMethod);
-        }
-    }
-    private void notifyServiceDetailsCreated(ServiceDetails serviceDetails) {
-        for (ServiceDetailsCreated callback : this.scanningConfiguration.getServiceDetailsCreatedCallbacks()) {
-            callback.serviceDetailsCreated(serviceDetails);
-            for (ServiceBeanDetails bean : serviceDetails.getBeans()) {
-                callback.serviceDetailsCreated(bean);
-            }
-        }
-    }
-
-    /**
-     * Iterates all given classes and filters those that have {@link Service} annotation
-     * or one prided by the client.
-     *
-     * @return service annotated classes.
-     */
-    private Map<Class<?>, Annotation> filterServiceClasses(Collection<Class<?>> scannedClasses) {
-        final Set<Class<? extends Annotation>> serviceAnnotations = this.scanningConfiguration.getServiceAnnotations();
-        final Map<Class<?>, Annotation> locatedClasses = new HashMap<>();
-
-        for (Class<?> scannedClass : scannedClasses) {
-            if (scannedClass.isInterface() || scannedClass.isEnum() || scannedClass.isAnnotation()) {
-                continue;
-            }
-            for (Annotation annotation : scannedClass.getAnnotations()) {
-                if (serviceAnnotations.contains(annotation.annotationType())) {
-                    locatedClasses.put(scannedClass, annotation);
-                    break;
-                }
-            }
-        }
-        this.scanningConfiguration.getAdditionalClasses().forEach((cls, a) -> {
-            Annotation annotation = null;
-            if (a != null && cls.isAnnotationPresent(a)) {
-                annotation = cls.getAnnotation(a);
-            }
-
-            locatedClasses.put(cls, annotation);
-        });
-
-        return locatedClasses;
-    }
-
-
-    /**
      * Scans a given class for methods that are considered beans.
      *
      * @param rootService - the service from where the bean is being called.
      * @return array or method references that are bean compliant.
      */
     private Collection<ServiceBeanDetails> findBeans(ServiceDetails rootService) {
-        final Set<Class<? extends Annotation>> beanAnnotations = this.scanningConfiguration.getBeanAnnotations();
+        final Set<Class<? extends Annotation>> beanAnnotations = this.configuration.getBeanAnnotations();
         final Set<ServiceBeanDetails> beans = new HashSet<>();
 
         for (Method method : rootService.getServiceType().getDeclaredMethods()) {
@@ -217,6 +212,20 @@ public class ServicesScanningServiceImpl implements ServicesScanningService {
         }
 
         return beans;
+    }
+
+    /**
+     * Iterates all events provided by the user and calls them with the newly mapped service and beans.
+     *
+     * @param serviceDetails - newly mapped service.
+     */
+    private void notifyServiceDetailsCreated(ServiceDetails serviceDetails) {
+        for (ServiceDetailsCreated callback : this.configuration.getServiceDetailsCreatedCallbacks()) {
+            callback.serviceDetailsCreated(serviceDetails);
+            for (ServiceBeanDetails bean : serviceDetails.getBeans()) {
+                callback.serviceDetailsCreated(bean);
+            }
+        }
     }
 
     /**
@@ -257,46 +266,6 @@ public class ServicesScanningServiceImpl implements ServicesScanningService {
         return AnnotationUtils.getAnnotationValue(annotation).toString();
     }
 
-    /**
-     * Looks for a constructor from the given class that has {@link Autowired} annotation
-     * or gets the first one.
-     *
-     * @param locatedClass - the given class.
-     * @return suitable constructor.
-     */
-    private Constructor<?> findSuitableConstructor(Class<?> locatedClass) {
-        for (Constructor<?> ctr : locatedClass.getDeclaredConstructors()) {
-            if (AliasFinder.isAnnotationPresent(ctr.getDeclaredAnnotations(), Autowired.class)) {
-                ctr.setAccessible(true);
-                return ctr;
-            }
-        }
-        return locatedClass.getConstructors()[0];
-    }
-
-    /**
-     * @param locatedClass
-     * @param annotation
-     * @return
-     */
-    private Method findVoidMethodWithZeroParamsAndAnnotations(Class<?> locatedClass, Class<? extends Annotation> annotation) {
-        for (Method method : locatedClass.getDeclaredMethods()) {
-            int countParams = method.getParameterCount();
-            Class<?> getReturnType = method.getReturnType();
-            if (countParams != 0 || (getReturnType != void.class && getReturnType != Void.class)) {
-                continue;
-            }
-            if (AliasFinder.isAnnotationPresent(method.getDeclaredAnnotations(), annotation)) {
-                method.setAccessible(true);
-                return method;
-            }
-        }
-        if (locatedClass.getSuperclass() != null) {
-            return this.findVoidMethodWithZeroParamsAndAnnotations(locatedClass.getSuperclass(), annotation);
-        }
-        return null;
-    }
-
     private List<Field> findAutowireAnnotatedFields(Class<?> cls, List<Field> fields) {
         for (Field declaredField : cls.getDeclaredFields()) {
             if (AliasFinder.isAnnotationPresent(declaredField.getDeclaredAnnotations(), Autowired.class)) {
@@ -311,12 +280,50 @@ public class ServicesScanningServiceImpl implements ServicesScanningService {
 
         return fields;
     }
+
+    /**
+     * Updates {@link ServiceDetails} class of any service that might have method annotated with annotation that is
+     * a part of a method aspect.
+     *
+     * @param aspectHandlerServices -
+     * @param serviceDetails        -
+     */
+    private void applyAspectHandlerServices(Map<Class<? extends Annotation>, ServiceDetails> aspectHandlerServices,
+                                            Set<ServiceDetails> serviceDetails) {
+        if (aspectHandlerServices.isEmpty()) {
+            return;
+        }
+
+        for (ServiceDetails service : serviceDetails) {
+            final Map<Method, List<MethodAspectHandlerDto>> aspectsPerMethod = new HashMap<>();
+
+            for (Method method : service.getServiceType().getDeclaredMethods()) {
+                for (Annotation annotation : method.getAnnotations()) {
+                    if (aspectHandlerServices.containsKey(annotation.annotationType())) {
+                        aspectsPerMethod.putIfAbsent(method, new ArrayList<>());
+                        aspectsPerMethod.get(method).add(new MethodAspectHandlerDto(
+                                aspectHandlerServices.get(annotation.annotationType()),
+                                annotation.annotationType()
+                        ));
+                    }
+                }
+            }
+
+            if (aspectsPerMethod.isEmpty()) {
+                continue;
+            }
+
+            service.setScopeType(ScopeType.PROXY);
+            service.setMethodAspectHandlers(aspectsPerMethod);
+        }
+    }
+
     /**
      * Adds the platform's default annotations for services and beans on top of the
      * ones that the client might have provided.
      */
     private void init() {
-        this.scanningConfiguration.getBeanAnnotations().add(Bean.class);
-        this.scanningConfiguration.getServiceAnnotations().add(Service.class);
+        this.configuration.getBeanAnnotations().add(Bean.class);
+        this.configuration.getServiceAnnotations().add(Service.class);
     }
 }

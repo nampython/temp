@@ -1,14 +1,11 @@
 package org.example.container;
 
 import org.example.exceptions.AlreadyInitializedException;
-import org.example.instantiations.InstantiationService;
 
 import java.lang.annotation.Annotation;
 import java.util.Collection;
 
 public interface DependencyContainerV2 {
-
-    void init(Collection<Class<?>> locatedClasses, Collection<ServiceDetails> servicesAndBeans, InstantiationService instantiationService) throws AlreadyInitializedException;
 
     void reload(ServiceDetails serviceDetails);
 

@@ -2,6 +2,7 @@ package org.example.instantiations;
 
 import org.example.annotations.ScopeType;
 import org.example.container.ServiceDetails;
+import org.example.util.ObjectInstantiationUtils;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
@@ -56,4 +57,21 @@ public class ServiceBeanDetails extends ServiceDetails {
 //    public boolean hasProxyInstance() {
 //        return super.getProxyInstance() != null;
 //    }
+@Override
+public Object getInstance() {
+    if (super.getScopeType() == ScopeType.PROTOTYPE) {
+        if (super.getActualInstance() == null) {
+            return null;
+        }
+
+        if (!super.instanceRequested) {
+            super.instanceRequested = true;
+            return super.getActualInstance();
+        }
+
+        return ObjectInstantiationUtils.createNewInstance(this);
+    }
+
+    return super.getInstance();
+}
 }

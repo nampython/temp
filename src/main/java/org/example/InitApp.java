@@ -8,8 +8,6 @@ import org.example.directory.Directory;
 import org.example.directory.DirectoryResolver;
 import org.example.directory.DirectoryResolverImpl;
 import org.example.directory.DirectoryType;
-import org.example.instantiations.InstantiationService;
-import org.example.instantiations.InstantiationServiceImpl;
 import org.example.instantiations.ServicesInstantiationService;
 import org.example.instantiations.ServicesInstantiationServiceImpl;
 
@@ -58,35 +56,40 @@ public class InitApp {
 
     public static DependencyContainerV2 run(File[] startupDirectories, Configuration configuration) {
         final ServicesScanningService scanningService = new ServicesScanningServiceImpl(configuration.scanning());
-        final InstantiationService objectInstantiationService = new InstantiationServiceImpl();
         final ServicesInstantiationService instantiationService = new ServicesInstantiationServiceImpl(
-                objectInstantiationService,
-                configuration.getInstantiationConfiguration(),
                 new DependencyResolveServiceImpl(configuration.getInstantiationConfiguration())
-
         );
 
         final Set<Class<?>> locatedClasses = new HashSet<>();
         final List<ServiceDetails> serviceDetails = new ArrayList<>();
 
-        final Thread runner = new Thread(() -> {
+        final Runnable runnable = () -> {
             locatedClasses.addAll(locateClasses(startupDirectories));
             final Set<ServiceDetails> mappedServices = new HashSet<>(scanningService.mappingClass(locatedClasses));
             serviceDetails.addAll(new ArrayList<>(instantiationService.instantiateServicesAndBeans(mappedServices)));
-        });
+        };
 
-        runner.setContextClassLoader(configuration.scanning().getClassLoader());
-        runner.start();
-        try {
-            runner.join();
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
+        if (configuration.general().isRunInNewThread()) {
+            final Thread runner = new Thread(runnable);
+
+            runner.setContextClassLoader(configuration.scanning().getClassLoader());
+            runner.start();
+            try {
+                runner.join();
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        } else {
+            final ClassLoader oldCl = Thread.currentThread().getContextClassLoader();
+            try {
+                Thread.currentThread().setContextClassLoader(configuration.scanning().getClassLoader());
+                runnable.run();
+            } finally {
+                Thread.currentThread().setContextClassLoader(oldCl);
+            }
         }
+        return new DependencyContainerCached(locatedClasses, serviceDetails);
 
-        final DependencyContainerV2 dependencyContainer = new DependencyContainerCached();
-        dependencyContainer.init(locatedClasses, serviceDetails, objectInstantiationService);
-
-        return dependencyContainer;
     }
 //        final Set<Class<?>> locatedClass = getLocatedClass(startupClass);
 //        final ServicesScanningService servicesScanningService = new ServicesScanningServiceImpl(

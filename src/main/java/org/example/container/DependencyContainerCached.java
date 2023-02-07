@@ -1,9 +1,7 @@
 package org.example.container;
 
 import java.lang.annotation.Annotation;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 public class DependencyContainerCached extends DependencyContainerInternal {
 
@@ -13,10 +11,12 @@ public class DependencyContainerCached extends DependencyContainerInternal {
 
     private final Map<Class<? extends Annotation>, Collection<ServiceDetails>> cachedServicesByAnnotation;
 
-    public DependencyContainerCached() {
+    public DependencyContainerCached(Set<Class<?>> locatedClasses, List<ServiceDetails> serviceDetails) {
         this.cachedServices = new HashMap<>();
         this.cachedImplementations = new HashMap<>();
         this.cachedServicesByAnnotation = new HashMap<>();
+        this.init(locatedClasses, serviceDetails);
+
     }
 
     @Override

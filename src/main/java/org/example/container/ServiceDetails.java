@@ -1,9 +1,12 @@
 package org.example.container;
 
+
+
 import org.example.annotations.ScopeType;
 import org.example.instantiations.ServiceBeanDetails;
 import org.example.model.DependencyParam;
 import org.example.model.MethodAspectHandlerDto;
+import org.example.util.ObjectInstantiationUtils;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Constructor;
@@ -26,14 +29,12 @@ public class ServiceDetails {
      * The type of the service.
      */
     private Class<?> serviceType;
+
     /**
-     * Service instance.
+     * The annotation used to map the service (@Service or a custom one).
      */
-    private Object instance;
-    /**
-     * Proxy instance that will be injected into services instead of actual instance.
-     */
-    private Object proxyInstance;
+    private Annotation annotation;
+
     /**
      * The constructor that will be used to create an instance of the service.
      */
@@ -43,18 +44,27 @@ public class ServiceDetails {
      * The name of the instance or null if no name has been given.
      */
     private String instanceName;
+
     /**
-     * The annotation used to map the service (@Service or a custom one).
+     * Service instance.
      */
-    private Annotation annotation;
+    private Object instance;
+
     /**
-     * The reference to all @Bean (or a custom one) annotated methods.
+     * Flag used for PROTOTYPE scoped service to ensure instance is not left unused.
      */
-    private Collection<ServiceBeanDetails> beans;
+    protected boolean instanceRequested;
+
+    /**
+     * Proxy instance that will be injected into services instead of actual instance.
+     */
+    private Object proxyInstance;
+
     /**
      * Reference to the post construct method if any.
      */
     private Method postConstructMethod;
+
     /**
      * Reference to the pre destroy method if any.
      */
@@ -64,14 +74,17 @@ public class ServiceDetails {
      * Holds information for service's scope.
      */
     private ScopeType scopeType;
+
     /**
-     * List of all services that depend on this one.
+     * The reference to all @Bean (or a custom one) annotated methods.
      */
-    private final List<ServiceDetails> dependantServices;
+    private Collection<ServiceBeanDetails> beans;
+
     /**
      * Array of fields within the service that are annotated with @{@link Autowired}
      */
     private Field[] autowireAnnotatedFields;
+
     /**
      * Collection with details about resolved dependencies from the target constructor.
      */
@@ -81,17 +94,15 @@ public class ServiceDetails {
      * Collection with details about resolved {@link Autowired} field dependencies.
      */
     private LinkedList<DependencyParam> resolvedFields;
+
     private final Map<Method, List<MethodAspectHandlerDto>> methodAspectHandlers = new HashMap<>();
 
+    protected ServiceDetails() {
 
-
-    public ServiceDetails() {
-        this.dependantServices = new ArrayList<>();
     }
 
     public ServiceDetails(Class<?> serviceType,
-                          Annotation annotation,
-                          Constructor<?> targetConstructor,
+                          Annotation annotation, Constructor<?> targetConstructor,
                           String instanceName,
                           Method postConstructMethod, Method preDestroyMethod,
                           ScopeType scopeType,
@@ -107,13 +118,6 @@ public class ServiceDetails {
         this.setAutowireAnnotatedFields(autowireAnnotatedFields);
     }
 
-    public Map<Method, List<MethodAspectHandlerDto>> getMethodAspectHandlers() {
-        return this.methodAspectHandlers;
-    }
-
-    public void setMethodAspectHandlers(Map<Method, List<MethodAspectHandlerDto>> methodAspectHandlers) {
-        this.methodAspectHandlers.putAll(methodAspectHandlers);
-    }
     public Class<?> getServiceType() {
         return this.serviceType;
     }
@@ -151,6 +155,19 @@ public class ServiceDetails {
     }
 
     public Object getInstance() {
+        if (this.getScopeType() == ScopeType.PROTOTYPE) {
+            if (this.instance == null) {
+                return null;
+            }
+
+            if (!this.instanceRequested) {
+                this.instanceRequested = true;
+                return this.instance;
+            }
+
+            return ObjectInstantiationUtils.createNewInstance(this);
+        }
+
         if (this.proxyInstance != null) {
             return this.proxyInstance;
         }
@@ -234,6 +251,14 @@ public class ServiceDetails {
         this.resolvedFields = resolvedFields;
     }
 
+    public Map<Method, List<MethodAspectHandlerDto>> getMethodAspectHandlers() {
+        return this.methodAspectHandlers;
+    }
+
+    public void setMethodAspectHandlers(Map<Method, List<MethodAspectHandlerDto>> methodAspectHandlers) {
+        this.methodAspectHandlers.putAll(methodAspectHandlers);
+    }
+
     /**
      * We are using the serviceType hashcode in order to make this class unique
      * when using in in sets.
@@ -247,6 +272,23 @@ public class ServiceDetails {
         }
 
         return this.serviceType.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object other) {
+        if (!(other instanceof ServiceDetails)) {
+            return false;
+        }
+
+        if (this.serviceType == null) {
+            return super.equals(other);
+        }
+
+        final ServiceDetails otherService = (ServiceDetails) other;
+        return Objects.equals(otherService.getInstanceName(), this.getInstanceName())
+                && Objects.equals(otherService.getAnnotation(), this.getAnnotation())
+                && Objects.equals(otherService.getServiceType(), this.getServiceType())
+                && Objects.equals(otherService.getScopeType(), this.getScopeType());
     }
 
     @Override
