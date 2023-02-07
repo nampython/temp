@@ -20,26 +20,26 @@ public class ProxyUtils {
 
         Object proxyInstance;
         try {
+            proxyInstance = proxyFactory.create(serviceDetails.getTargetConstructor().getParameterTypes(), constructorParams);
+//            proxyInstance = Arrays.stream(cls.getDeclaredConstructors())
+//                    .filter(ctr -> {
+//                        if (ctr.getParameterCount() != constructorParams.length) {
+//                            return false;
+//                        }
+//
+//                        final Class<?>[] parameterTypes = ctr.getParameterTypes();
+//
+//                        for (int i = 0; i < parameterTypes.length; i++) {
+//                            if (constructorParams[i] != null && !parameterTypes[i].isAssignableFrom(constructorParams[i].getClass())) {
+//                                return false;
+//                            }
+//                        }
+//
+//                        ctr.setAccessible(true);
+//                        return true;
+//                    }).findFirst().get().newInstance(constructorParams);
 
-            proxyInstance = Arrays.stream(cls.getDeclaredConstructors())
-                    .filter(ctr -> {
-                        if (ctr.getParameterCount() != constructorParams.length) {
-                            return false;
-                        }
-
-                        final Class<?>[] parameterTypes = ctr.getParameterTypes();
-
-                        for (int i = 0; i < parameterTypes.length; i++) {
-                            if (constructorParams[i] != null && !parameterTypes[i].isAssignableFrom(constructorParams[i].getClass())) {
-                                return false;
-                            }
-                        }
-
-                        ctr.setAccessible(true);
-                        return true;
-                    }).findFirst().get().newInstance(constructorParams);
-
-        } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
+        } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
             throw new RuntimeException(e);
         }
 
