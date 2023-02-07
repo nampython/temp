@@ -52,12 +52,23 @@ public class DependencyContainerImpl implements DependencyContainer{
      */
     @Override
     public void update(Object service) {
-        final ServiceDetails serviceDetails = this.getSingleService(service.getClass());
+        this.update(service.getClass(), service);
+//        final ServiceDetails serviceDetails = this.getSingleService(service.getClass());
+//        if (serviceDetails == null) {
+//            throw new IllegalArgumentException(String.format(SERVICE_NOT_FOUND_FORMAT, service));
+//        }
+//        this.instantiationService.destroyInstance(serviceDetails);
+//        serviceDetails.setInstance(service);
+    }
+
+    @Override
+    public void update(Class<?> serviceType, Object serviceInstance) {
+        final ServiceDetails serviceDetails = this.getSingleService(serviceType);
         if (serviceDetails == null) {
-            throw new IllegalArgumentException(String.format(SERVICE_NOT_FOUND_FORMAT, service));
+            throw new IllegalArgumentException(String.format(SERVICE_NOT_FOUND_FORMAT, serviceType.getName()));
         }
         this.instantiationService.destroyInstance(serviceDetails);
-        serviceDetails.setInstance(service);
+        serviceDetails.setInstance(serviceInstance);
     }
 
 
