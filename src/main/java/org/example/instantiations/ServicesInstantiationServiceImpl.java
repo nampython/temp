@@ -19,7 +19,7 @@ import java.util.stream.Collectors;
  * Responsible for creating the initial instances or all services and beans.
  */
 public class ServicesInstantiationServiceImpl implements ServicesInstantiationService {
-    private static final String MAX_NUMBER_OF_ALLOWED_ITERATIONS_REACHED = "Maximum number of allowed iterations was reached '%s'.";
+    private static final String MAX_NUMBER_OF_ALLOWED_ITERATIONS_REACHED = "Maximum number of allowed iterations was reached '%s'. Remaining services: \n %s";
     private static final String COULD_NOT_FIND_CONSTRUCTOR_PARAM_MSG = "Could not create instance of '%s'. Parameter '%s' implementation was not found";
     private final InstantiationService instantiationService;
     /**
@@ -68,7 +68,7 @@ public class ServicesInstantiationServiceImpl implements ServicesInstantiationSe
         int counter = 0;
         while (!this.enqueuedServiceDetails.isEmpty()) {
             if (counter > maxNumberOfIterations) {
-                throw new ServiceInstantiationException(String.format(MAX_NUMBER_OF_ALLOWED_ITERATIONS_REACHED, maxNumberOfIterations));
+                throw new ServiceInstantiationException(String.format(MAX_NUMBER_OF_ALLOWED_ITERATIONS_REACHED, maxNumberOfIterations, this.enqueuedServiceDetails));
             }
             final EnqueuedServiceDetails enqueuedServiceDetail = this.enqueuedServiceDetails.removeFirst();
             if (enqueuedServiceDetail.isResolved()) {
@@ -102,6 +102,7 @@ public class ServicesInstantiationServiceImpl implements ServicesInstantiationSe
                     bean,
                     serviceDetails);
             this.instantiationService.createBean(serviceBeanDetails);
+            ProxyUtils.createBeanProxyInstance(serviceBeanDetails);
             this.registerInstantiatedService(serviceBeanDetails);
         }
     }
@@ -193,6 +194,16 @@ public class ServicesInstantiationServiceImpl implements ServicesInstantiationSe
     private void init(Set<ServiceDetails> mappedClass) {
         this.clear();
         this.getAllAvailableServices(mappedClass);
+        //If services are provided through config, add them to the list of available classes and instances.
+        this.allAvailableServices.addAll(this.instantiationConfiguration.getProvidedServices()
+                .stream()
+                .map(ServiceDetails::getServiceType)
+                .collect(Collectors.toList())
+        );
+
+        for (ServiceDetails instantiatedService : this.instantiationConfiguration.getProvidedServices()) {
+            this.registerInstantiatedService(instantiatedService);
+        }
         this.setDependencyRequirements();
     }
     /**

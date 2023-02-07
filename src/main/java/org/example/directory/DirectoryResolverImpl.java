@@ -1,6 +1,7 @@
 package org.example.directory;
 
 import java.io.File;
+import java.io.IOException;
 
 /**
  * DirectoryResolver implementation.
@@ -14,6 +15,15 @@ public class DirectoryResolverImpl implements DirectoryResolver {
         String pathDir = this.getDirectory(initClass);
         DirectoryType dirType = this.getDirectoryType(pathDir);
         return new Directory(pathDir, dirType);
+    }
+
+    @Override
+    public Directory resolveDirectory(File directory) {
+        try {
+            return new Directory(directory.getCanonicalPath(), this.getDirectoryType(directory.getCanonicalPath()));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
     /**
      * Get the root dir where the given class resides.

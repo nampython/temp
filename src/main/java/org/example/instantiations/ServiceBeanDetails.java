@@ -32,4 +32,17 @@ public class ServiceBeanDetails extends ServiceDetails {
     public ServiceDetails getRootService() {
         return this.rootService;
     }
+
+    @Override
+    public Object getProxyInstance() {
+        if (super.getProxyInstance() != null) {
+            return super.getProxyInstance();
+        }
+
+        return this.getActualInstance();
+    }
+
+    public boolean hasProxyInstance() {
+        return super.getProxyInstance() != null;
+    }
 }
