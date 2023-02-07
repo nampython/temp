@@ -59,16 +59,23 @@ public class ServicesScanningServiceImpl implements ServicesScanningService {
                     this.findAutowireAnnotatedFields(cls, new ArrayList<>()).toArray(new Field[0])
             );
             serviceDetails.setBeans(this.findBeans(serviceDetails));
+            this.notifyServiceDetailsCreated(serviceDetails);
 
-            for (ServiceDetailsCreated callback : this.scanningConfiguration.getServiceDetailsCreatedCallbacks()) {
-                callback.serviceDetailsCreated(serviceDetails);
-            }
             this.serviceDetailsStorage.add(serviceDetails);
         }
         return this.serviceDetailsStorage
                 .stream()
                 .sorted(new ServiceDetailsConstructComparator())
                 .collect(Collectors.toCollection(LinkedHashSet::new));
+    }
+
+    private void notifyServiceDetailsCreated(ServiceDetails serviceDetails) {
+        for (ServiceDetailsCreated callback : this.scanningConfiguration.getServiceDetailsCreatedCallbacks()) {
+            callback.serviceDetailsCreated(serviceDetails);
+            for (ServiceBeanDetails bean : serviceDetails.getBeans()) {
+                callback.serviceDetailsCreated(bean);
+            }
+        }
     }
 
     /**

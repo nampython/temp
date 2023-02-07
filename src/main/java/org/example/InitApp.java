@@ -67,7 +67,13 @@ public class InitApp {
         );
 
         final Set<Class<?>> locatedClasses = new HashSet<>();
-        final Thread runner = new Thread(() -> locatedClasses.addAll(locateClasses(startupDirectories)));
+        final List<ServiceDetails> serviceDetails = new ArrayList<>();
+
+        final Thread runner = new Thread(() -> {
+            locatedClasses.addAll(locateClasses(startupDirectories));
+            final Set<ServiceDetails> mappedServices = new HashSet<>(scanningService.mappingClass(locatedClasses));
+            serviceDetails.addAll(new ArrayList<>(instantiationService.instantiateServicesAndBeans(mappedServices)));
+        });
 
         runner.setContextClassLoader(configuration.scanning().getClassLoader());
         runner.start();
@@ -76,8 +82,7 @@ public class InitApp {
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
-        final Set<ServiceDetails> mappedServices = new HashSet<>(scanningService.mappingClass(locatedClasses));
-        final List<ServiceDetails> serviceDetails = new ArrayList<>(instantiationService.instantiateServicesAndBeans(mappedServices));
+
         final DependencyContainerV2 dependencyContainer = new DependencyContainerCached();
         dependencyContainer.init(locatedClasses, serviceDetails, objectInstantiationService);
 
