@@ -3,13 +3,17 @@ package org.example.instantiations;
 import org.example.annotations.Qualifier;
 import org.example.container.ServiceDetails;
 import org.example.model.DependencyParam;
+import org.example.model.DependencyParamCollection;
 import org.example.util.AliasFinder;
 import org.example.util.AnnotationUtils;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Parameter;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.LinkedList;
 
 /**
@@ -106,24 +110,35 @@ public class EnqueuedServiceDetails {
 
     private void fillConstructorParams() {
         for (Parameter parameter : this.serviceDetails.getTargetConstructor().getParameters()) {
-            this.constructorParams.add(new DependencyParam(
+            this.constructorParams.add(this.createDependencyParam(
                     parameter.getType(),
                     this.getInstanceName(parameter.getDeclaredAnnotations()),
-                    parameter.getDeclaredAnnotations()
+                    parameter.getDeclaredAnnotations(),
+                    parameter.getParameterizedType()
             ));
         }
     }
 
     private void fillFieldDependencyTypes() {
         for (Field autowireAnnotatedField : this.serviceDetails.getAutowireAnnotatedFields()) {
-            this.fieldDependencies.add(new DependencyParam(
+            this.fieldDependencies.add(this.createDependencyParam(
                     autowireAnnotatedField.getType(),
                     this.getInstanceName(autowireAnnotatedField.getDeclaredAnnotations()),
-                    autowireAnnotatedField.getDeclaredAnnotations()
+                    autowireAnnotatedField.getDeclaredAnnotations(),
+                    autowireAnnotatedField.getGenericType()
             ));
         }
     }
+    private DependencyParam createDependencyParam(Class<?> type,
+                                                  String instanceName,
+                                                  Annotation[] annotations,
+                                                  Type parameterizedType) {
+        if (Collection.class.isAssignableFrom(type)) {
+            return new DependencyParamCollection((ParameterizedType) parameterizedType, type, instanceName, annotations);
+        }
 
+        return new DependencyParam(type, instanceName, annotations);
+    }
     private String getInstanceName(Annotation[] annotations) {
         final Annotation annotation = AliasFinder.getAnnotation(annotations, Qualifier.class);
 

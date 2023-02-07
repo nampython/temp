@@ -1,13 +1,17 @@
 package org.example.model;
 
 
+import org.example.container.ServiceDetails;
 import org.example.middleware.DependencyResolver;
+import org.example.util.ServiceCompatibilityUtils;
 
 import java.lang.annotation.Annotation;
+import java.util.List;
 
 public class DependencyParam {
 
     private final Class<?> dependencyType;
+    private List<Class<?>> allAvailableCompatibleClasses;
 
     private final String instanceName;
 
@@ -28,7 +32,21 @@ public class DependencyParam {
         this.setRequired(true);
         this.setValuePresent(false);
     }
+    public List<Class<?>> getAllAvailableCompatibleClasses() {
+        return this.allAvailableCompatibleClasses;
+    }
 
+    public void setAllAvailableCompatibleClasses(List<Class<?>> allAvailableCompatibleClasses) {
+        this.allAvailableCompatibleClasses = allAvailableCompatibleClasses;
+    }
+
+    public boolean isUnresolved() {
+        return this.getInstance() == null && this.isValuePresent();
+    }
+
+    public boolean isCompatible(ServiceDetails serviceDetails) {
+        return ServiceCompatibilityUtils.isServiceCompatible(serviceDetails, this.dependencyType, this.instanceName);
+    }
     public Class<?> getDependencyType() {
         return this.dependencyType;
     }

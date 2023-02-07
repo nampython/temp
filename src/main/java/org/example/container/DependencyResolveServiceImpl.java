@@ -106,7 +106,9 @@ public class DependencyResolveServiceImpl implements DependencyResolveService {
                 continue;
             }
 
-            if (this.isAssignableTypePresent(dependencyType)) {
+            final List<Class<?>> allAssignableTypesPresent = this.findAllAssignableTypesPresent(dependencyType);
+            dependencyParam.setAllAvailableCompatibleClasses(allAssignableTypesPresent);
+            if (!allAssignableTypesPresent.isEmpty()) {
                 dependencyParam.setValuePresent(true);
                 continue;
             }
@@ -130,6 +132,21 @@ public class DependencyResolveServiceImpl implements DependencyResolveService {
         }
     }
 
+
+    /**
+     * @param cls given type.
+     * @return all of allAvailableClasses that are compatible with the given type
+     */
+    private List<Class<?>> findAllAssignableTypesPresent(Class<?> cls) {
+        final List<Class<?>> compatibleClasses = new ArrayList<>();
+        for (Class<?> serviceType : this.allAvailableClasses) {
+            if (cls.isAssignableFrom(serviceType)) {
+                compatibleClasses.add(serviceType);
+            }
+        }
+
+        return compatibleClasses;
+    }
     /**
      * Adds the object instance in the array of instantiated dependencies
      * by keeping the exact same position as the target constructor of the service has it.
