@@ -4,12 +4,11 @@ import javassist.util.proxy.ProxyFactory;
 import javassist.util.proxy.ProxyObject;
 import org.example.container.ServiceDetails;
 import org.example.handler.InvocationHandlerImpl;
-import org.example.handler.MethodInvocationHandlerImpl;
 import org.example.instantiations.ServiceBeanDetails;
+import org.example.model.MethodInvocationHandlerImpl;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Proxy;
-import java.util.Arrays;
 
 public class ProxyUtils {
 

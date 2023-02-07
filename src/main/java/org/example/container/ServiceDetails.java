@@ -3,6 +3,7 @@ package org.example.container;
 import org.example.annotations.ScopeType;
 import org.example.instantiations.ServiceBeanDetails;
 import org.example.model.DependencyParam;
+import org.example.model.MethodAspectHandlerDto;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Constructor;
@@ -80,6 +81,8 @@ public class ServiceDetails {
      * Collection with details about resolved {@link Autowired} field dependencies.
      */
     private LinkedList<DependencyParam> resolvedFields;
+    private final Map<Method, List<MethodAspectHandlerDto>> methodAspectHandlers = new HashMap<>();
+
 
 
     public ServiceDetails() {
@@ -104,7 +107,13 @@ public class ServiceDetails {
         this.setAutowireAnnotatedFields(autowireAnnotatedFields);
     }
 
+    public Map<Method, List<MethodAspectHandlerDto>> getMethodAspectHandlers() {
+        return this.methodAspectHandlers;
+    }
 
+    public void setMethodAspectHandlers(Map<Method, List<MethodAspectHandlerDto>> methodAspectHandlers) {
+        this.methodAspectHandlers.putAll(methodAspectHandlers);
+    }
     public Class<?> getServiceType() {
         return this.serviceType;
     }

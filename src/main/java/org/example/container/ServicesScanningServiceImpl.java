@@ -2,16 +2,21 @@ package org.example.container;
 
 import org.example.annotations.*;
 import org.example.configs.ScanningConfiguration;
+import org.example.exceptions.ClassLocationException;
+import org.example.handler.ServiceMethodAspectHandler;
 import org.example.instantiations.ServiceBeanDetails;
 import org.example.middleware.ServiceDetailsCreated;
+import org.example.model.MethodAspectHandlerDto;
 import org.example.util.AliasFinder;
 import org.example.util.AnnotationUtils;
+import org.example.util.GenericsUtils;
 import org.example.util.ServiceDetailsConstructComparator;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.lang.reflect.Type;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -44,6 +49,7 @@ public class ServicesScanningServiceImpl implements ServicesScanningService {
     public Set<ServiceDetails> mappingClass(Set<Class<?>> locatedClasses) {
         final Map<Class<?>, Annotation> onlyServiceClasses = this.filterServiceClasses(locatedClasses);
         final Set<ServiceDetails> serviceDetailsStorage = new HashSet<>();
+        final Map<Class<? extends Annotation>, ServiceDetails> aspectHandlerServices = new HashMap<>();
 
         for (Map.Entry<Class<?>, Annotation> serviceAnnotationEntry : onlyServiceClasses.entrySet()) {
             final Class<?> cls = serviceAnnotationEntry.getKey();
@@ -58,17 +64,81 @@ public class ServicesScanningServiceImpl implements ServicesScanningService {
                     this.findScope(cls),
                     this.findAutowireAnnotatedFields(cls, new ArrayList<>()).toArray(new Field[0])
             );
+            this.maybeAddAspectHandlerService(serviceDetails, aspectHandlerServices);
             serviceDetails.setBeans(this.findBeans(serviceDetails));
             this.notifyServiceDetailsCreated(serviceDetails);
 
             this.serviceDetailsStorage.add(serviceDetails);
         }
+        this.applyAspectHandlerServices(aspectHandlerServices, serviceDetailsStorage);
         return this.serviceDetailsStorage
                 .stream()
                 .sorted(new ServiceDetailsConstructComparator())
                 .collect(Collectors.toCollection(LinkedHashSet::new));
     }
 
+    /**
+     * Check if service is of type {@link ServiceMethodAspectHandler} and add it to the collection of aspect services
+     *
+     * @param serviceDetails        -
+     * @param aspectHandlerServices -
+     */
+    private void maybeAddAspectHandlerService(ServiceDetails serviceDetails,
+                                              Map<Class<? extends Annotation>, ServiceDetails> aspectHandlerServices) {
+        if (!ServiceMethodAspectHandler.class.isAssignableFrom(serviceDetails.getServiceType())) {
+            return;
+        }
+
+        final Type[] genericTypeArguments = GenericsUtils.getGenericTypeArguments(
+                serviceDetails.getServiceType(),
+                ServiceMethodAspectHandler.class
+        );
+
+        if (genericTypeArguments == null || genericTypeArguments.length != 1) {
+            throw new ClassLocationException(String.format(
+                    "Error while loading Aspect Handler class '%s'.", serviceDetails.getServiceType()
+            ));
+        }
+
+        aspectHandlerServices.put((Class<? extends Annotation>) genericTypeArguments[0], serviceDetails);
+    }
+
+    /**
+     * Updates {@link ServiceDetails} class of any service that might have method annotated with annotation that is
+     * a part of a method aspect.
+     *
+     * @param aspectHandlerServices -
+     * @param serviceDetails        -
+     */
+    private void applyAspectHandlerServices(Map<Class<? extends Annotation>, ServiceDetails> aspectHandlerServices,
+                                            Set<ServiceDetails> serviceDetails) {
+        if (aspectHandlerServices.isEmpty()) {
+            return;
+        }
+
+        for (ServiceDetails service : serviceDetails) {
+            final Map<Method, List<MethodAspectHandlerDto>> aspectsPerMethod = new HashMap<>();
+
+            for (Method method : service.getServiceType().getDeclaredMethods()) {
+                for (Annotation annotation : method.getAnnotations()) {
+                    if (aspectHandlerServices.containsKey(annotation.annotationType())) {
+                        aspectsPerMethod.putIfAbsent(method, new ArrayList<>());
+                        aspectsPerMethod.get(method).add(new MethodAspectHandlerDto(
+                                aspectHandlerServices.get(annotation.annotationType()),
+                                annotation.annotationType()
+                        ));
+                    }
+                }
+            }
+
+            if (aspectsPerMethod.isEmpty()) {
+                continue;
+            }
+
+            service.setScopeType(ScopeType.PROXY);
+            service.setMethodAspectHandlers(aspectsPerMethod);
+        }
+    }
     private void notifyServiceDetailsCreated(ServiceDetails serviceDetails) {
         for (ServiceDetailsCreated callback : this.scanningConfiguration.getServiceDetailsCreatedCallbacks()) {
             callback.serviceDetailsCreated(serviceDetails);

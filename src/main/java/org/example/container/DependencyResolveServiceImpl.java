@@ -8,12 +8,14 @@ import org.example.instantiations.EnqueuedServiceDetails;
 import org.example.instantiations.ServiceBeanDetails;
 import org.example.middleware.DependencyResolver;
 import org.example.model.DependencyParam;
+import org.example.model.MethodAspectHandlerDto;
 import org.example.util.AliasFinder;
 import org.example.util.DependencyParamUtils;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 public class DependencyResolveServiceImpl implements DependencyResolveService {
@@ -158,8 +160,14 @@ public class DependencyResolveServiceImpl implements DependencyResolveService {
      */
     @Override
     public boolean isServiceResolved(EnqueuedServiceDetails serviceDetails) {
+        final Set<MethodAspectHandlerDto> aspects = serviceDetails.getServiceDetails().getMethodAspectHandlers()
+                .values().stream()
+                .flatMap(Collection::stream)
+                .collect(Collectors.toSet());
+
         return DependencyParamUtils.dependencyParamsResolved(serviceDetails.getConstructorParams()) &&
-                DependencyParamUtils.dependencyParamsResolved(serviceDetails.getFieldDependencies());
+                DependencyParamUtils.dependencyParamsResolved(serviceDetails.getFieldDependencies()) &&
+                (aspects.isEmpty() || aspects.stream().allMatch(h -> h.getServiceDetails().getInstance() != null));
     }
 
     @Override
