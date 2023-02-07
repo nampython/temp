@@ -1,9 +1,11 @@
 package org.example.instantiations;
 
+import org.example.annotations.ScopeType;
 import org.example.container.ServiceDetails;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 
 /**
  * Descendant of @ServiceDetails that is made to contain additional bean details.
@@ -20,12 +22,19 @@ public class ServiceBeanDetails extends ServiceDetails {
      */
     private final ServiceDetails rootService;
 
-    public ServiceBeanDetails(Class<?> serviceType, Method beanMethod, ServiceDetails serviceDetails, Annotation annotation) {
-        this.setServiceType(serviceType);
-        this.setBeans(new Method[0]);
+    public ServiceBeanDetails(Class<?> beanType,
+                              Method beanMethod,
+                              ServiceDetails serviceDetails,
+                              Annotation annotation,
+                              ScopeType scopeType,
+                              String instanceName) {
+        super.setServiceType(beanType);
+        super.setBeans(new ArrayList<>(0));
         this.beanMethod = beanMethod;
         this.rootService = serviceDetails;
-        this.setAnnotation(annotation);
+        super.setAnnotation(annotation);
+        super.setScopeType(scopeType);
+        super.setInstanceName(instanceName);
     }
     public Method getOriginMethod() {
         return this.beanMethod;
@@ -35,16 +44,16 @@ public class ServiceBeanDetails extends ServiceDetails {
         return this.rootService;
     }
 
-    @Override
-    public Object getProxyInstance() {
-        if (super.getProxyInstance() != null) {
-            return super.getProxyInstance();
-        }
-
-        return this.getActualInstance();
-    }
-
-    public boolean hasProxyInstance() {
-        return super.getProxyInstance() != null;
-    }
+//    @Override
+//    public Object getProxyInstance() {
+//        if (super.getProxyInstance() != null) {
+//            return super.getProxyInstance();
+//        }
+//
+//        return this.getActualInstance();
+//    }
+//
+//    public boolean hasProxyInstance() {
+//        return super.getProxyInstance() != null;
+//    }
 }

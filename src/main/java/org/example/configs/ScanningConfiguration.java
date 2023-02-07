@@ -1,5 +1,7 @@
 package org.example.configs;
 
+import org.example.middleware.ServiceDetailsCreated;
+
 import java.lang.annotation.Annotation;
 import java.util.*;
 
@@ -7,6 +9,7 @@ public class ScanningConfiguration extends BaseSubConfiguration {
     private final Set<Class<? extends Annotation>> serviceAnnotations;
     private final Set<Class<? extends Annotation>> beanAnnotations;
     private final Map<Class<?>, Class<? extends Annotation>> additionalClasses;
+    private final Set<ServiceDetailsCreated> serviceDetailsCreatedCallbacks;
     private ClassLoader classLoader;
 
     public ScanningConfiguration(Configuration configuration) {
@@ -14,6 +17,7 @@ public class ScanningConfiguration extends BaseSubConfiguration {
         this.serviceAnnotations = new HashSet<>();
         this.beanAnnotations = new HashSet<>();
         this.additionalClasses = new HashMap<>();
+        this.serviceDetailsCreatedCallbacks = new HashSet<>();
         this.classLoader = Thread.currentThread().getContextClassLoader();
     }
 
@@ -49,7 +53,10 @@ public class ScanningConfiguration extends BaseSubConfiguration {
         this.additionalClasses.putAll(additionalClasses);
         return this;
     }
-
+    public ScanningConfiguration addServiceDetailsCreatedCallback(ServiceDetailsCreated serviceDetailsCreated) {
+        this.serviceDetailsCreatedCallbacks.add(serviceDetailsCreated);
+        return this;
+    }
     public Set<Class<? extends Annotation>> getBeanAnnotations() {
         return this.beanAnnotations;
     }
@@ -60,5 +67,9 @@ public class ScanningConfiguration extends BaseSubConfiguration {
 
     public Map<Class<?>, Class<? extends Annotation>> getAdditionalClasses() {
         return this.additionalClasses;
+    }
+
+    public Set<ServiceDetailsCreated> getServiceDetailsCreatedCallbacks() {
+        return this.serviceDetailsCreatedCallbacks;
     }
 }

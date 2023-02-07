@@ -28,11 +28,11 @@ import java.util.*;
 public class InitApp {
 
     public static void main(String[] args) {
-        DependencyContainer run = run(InitApp.class);
-        Collection<ServiceDetails> allServiceDetails = run.getAllServiceDetails();
+        DependencyContainerV2 run = run(InitApp.class);
+        Collection<ServiceDetails> allServiceDetails = run.getAllServices();
         allServiceDetails.forEach(System.out::println);
     }
-    public static DependencyContainer run(Class<?> startupClass) {
+    public static DependencyContainerV2 run(Class<?> startupClass) {
         return run(startupClass, new Configuration());
     }
 
@@ -46,8 +46,8 @@ public class InitApp {
      *
      * @param startupClass any class from the client side.
      */
-    private static DependencyContainer run(Class<?> startupClass, Configuration configuration) {
-        final DependencyContainer dependencyContainer = run(new File[]{
+    private static DependencyContainerV2 run(Class<?> startupClass, Configuration configuration) {
+        final DependencyContainerV2 dependencyContainer = run(new File[]{
                 new File(new DirectoryResolverImpl().resolveDirectory(startupClass).getDirectory()),
         }, configuration);
 
@@ -56,25 +56,18 @@ public class InitApp {
         return dependencyContainer;
     }
 
-    public static DependencyContainer run(File[] startupDirectories, Configuration configuration) {
+    public static DependencyContainerV2 run(File[] startupDirectories, Configuration configuration) {
         final ServicesScanningService scanningService = new ServicesScanningServiceImpl(configuration.scanning());
         final InstantiationService objectInstantiationService = new InstantiationServiceImpl();
         final ServicesInstantiationService instantiationService = new ServicesInstantiationServiceImpl(
                 objectInstantiationService,
-                configuration.getInstantiationConfiguration()
+                configuration.getInstantiationConfiguration(),
+                new DependencyResolveServiceImpl(configuration.getInstantiationConfiguration())
 
         );
 
         final Set<Class<?>> locatedClasses = new HashSet<>();
-        final Set<ServiceDetails> mappedServices = new HashSet<>();
-        final List<ServiceDetails> serviceDetails = new ArrayList<>();
-
-
-        final Thread runner = new Thread(() -> {
-            locatedClasses.addAll(locateClasses(startupDirectories));
-            mappedServices.addAll(scanningService.mappingClass(locatedClasses));
-            serviceDetails.addAll(instantiationService.instantiateServicesAndBeans(mappedServices));
-        });
+        final Thread runner = new Thread(() -> locatedClasses.addAll(locateClasses(startupDirectories)));
 
         runner.setContextClassLoader(configuration.scanning().getClassLoader());
         runner.start();
@@ -83,9 +76,9 @@ public class InitApp {
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
-
-
-        final DependencyContainer dependencyContainer = new DependencyContainerImpl();
+        final Set<ServiceDetails> mappedServices = new HashSet<>(scanningService.mappingClass(locatedClasses));
+        final List<ServiceDetails> serviceDetails = new ArrayList<>(instantiationService.instantiateServicesAndBeans(mappedServices));
+        final DependencyContainerV2 dependencyContainer = new DependencyContainerCached();
         dependencyContainer.init(locatedClasses, serviceDetails, objectInstantiationService);
 
         return dependencyContainer;
@@ -205,27 +198,31 @@ public class InitApp {
      *
      * @param startupClass any class from the client side.
      */
-    private static void runStartUpMethod(Class<?> startupClass, DependencyContainer dependencyContainer) {
-        final ServiceDetails serviceDetails = dependencyContainer.getSingleService(startupClass);
+    private static void runStartUpMethod(Class<?> startupClass, DependencyContainerV2 dependencyContainer) {
+        final ServiceDetails serviceDetails = dependencyContainer.getServiceDetails(startupClass, null);
 
         if (serviceDetails == null) {
             return;
         }
 
         for (Method declaredMethod : serviceDetails.getServiceType().getDeclaredMethods()) {
-            if (declaredMethod.getParameterCount() != 0 ||
-                    (declaredMethod.getReturnType() != void.class &&
-                            declaredMethod.getReturnType() != Void.class)
+            if ((declaredMethod.getReturnType() != void.class &&
+                    declaredMethod.getReturnType() != Void.class)
                     || !declaredMethod.isAnnotationPresent(StartUp.class)) {
                 continue;
             }
 
             declaredMethod.setAccessible(true);
+            final Object[] params = Arrays.stream(declaredMethod.getParameterTypes())
+                    .map(dependencyContainer::getService)
+                    .toArray(Object[]::new);
+
             try {
-                declaredMethod.invoke(serviceDetails.getActualInstance());
+                declaredMethod.invoke(serviceDetails.getActualInstance(), params);
             } catch (IllegalAccessException | InvocationTargetException e) {
                 throw new RuntimeException(e);
             }
+
             return;
         }
     }

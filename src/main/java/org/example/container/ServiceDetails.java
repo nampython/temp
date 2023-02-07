@@ -1,13 +1,14 @@
 package org.example.container;
 
+import org.example.annotations.ScopeType;
+import org.example.instantiations.ServiceBeanDetails;
+import org.example.model.DependencyParam;
+
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 /**
  * Simple POJO class that holds information about a given class.
@@ -36,6 +37,11 @@ public class ServiceDetails {
      * The constructor that will be used to create an instance of the service.
      */
     private Constructor<?> targetConstructor;
+
+    /**
+     * The name of the instance or null if no name has been given.
+     */
+    private String instanceName;
     /**
      * The annotation used to map the service (@Service or a custom one).
      */
@@ -43,7 +49,7 @@ public class ServiceDetails {
     /**
      * The reference to all @Bean (or a custom one) annotated methods.
      */
-    private Method[] beans;
+    private Collection<ServiceBeanDetails> beans;
     /**
      * Reference to the post construct method if any.
      */
@@ -52,11 +58,29 @@ public class ServiceDetails {
      * Reference to the pre destroy method if any.
      */
     private Method preDestroyMethod;
+
+    /**
+     * Holds information for service's scope.
+     */
+    private ScopeType scopeType;
     /**
      * List of all services that depend on this one.
      */
     private final List<ServiceDetails> dependantServices;
+    /**
+     * Array of fields within the service that are annotated with @{@link Autowired}
+     */
     private Field[] autowireAnnotatedFields;
+    /**
+     * Collection with details about resolved dependencies from the target constructor.
+     */
+    private LinkedList<DependencyParam> resolvedConstructorParams;
+
+    /**
+     * Collection with details about resolved {@link Autowired} field dependencies.
+     */
+    private LinkedList<DependencyParam> resolvedFields;
+
 
     public ServiceDetails() {
         this.dependantServices = new ArrayList<>();
@@ -65,37 +89,32 @@ public class ServiceDetails {
     public ServiceDetails(Class<?> serviceType,
                           Annotation annotation,
                           Constructor<?> targetConstructor,
-                          Method postConstructMethod,
-                          Method preDestroyMethod,
-                          Method[] beans,
+                          String instanceName,
+                          Method postConstructMethod, Method preDestroyMethod,
+                          ScopeType scopeType,
                           Field[] autowireAnnotatedFields) {
         this();
         this.setServiceType(serviceType);
         this.setAnnotation(annotation);
         this.setTargetConstructor(targetConstructor);
+        this.setInstanceName(instanceName);
         this.setPostConstructMethod(postConstructMethod);
         this.setPreDestroyMethod(preDestroyMethod);
-        this.setBeans(beans);
+        this.setScopeType(scopeType);
         this.setAutowireAnnotatedFields(autowireAnnotatedFields);
     }
 
-    public Field[] getAutowireAnnotatedFields() {
-        return this.autowireAnnotatedFields;
-    }
 
-    public void setAutowireAnnotatedFields(Field[] autowireAnnotatedFields) {
-        this.autowireAnnotatedFields = autowireAnnotatedFields;
-    }
     public Class<?> getServiceType() {
         return this.serviceType;
     }
 
-    public void setServiceType(Class<?> serviceType) {
+    protected void setServiceType(Class<?> serviceType) {
         this.serviceType = serviceType;
     }
 
     public Annotation getAnnotation() {
-        return this.annotation;
+        return annotation;
     }
 
     public void setAnnotation(Annotation annotation) {
@@ -110,9 +129,30 @@ public class ServiceDetails {
         this.targetConstructor = targetConstructor;
     }
 
+    public String getInstanceName() {
+        return this.instanceName;
+    }
+
+    public void setInstanceName(String instanceName) {
+        this.instanceName = instanceName;
+    }
+
     public Object getActualInstance() {
         return this.instance;
     }
+
+    public Object getInstance() {
+        if (this.proxyInstance != null) {
+            return this.proxyInstance;
+        }
+
+        return this.instance;
+    }
+
+    public void setInstance(Object instance) {
+        this.instance = instance;
+    }
+
     public Object getProxyInstance() {
         return this.proxyInstance;
     }
@@ -125,8 +165,8 @@ public class ServiceDetails {
         this.proxyInstance = proxyInstance;
     }
 
-    public void setInstance(Object instance) {
-        this.instance =  instance;
+    public boolean hasProxyInstance() {
+        return this.proxyInstance != null;
     }
 
     public Method getPostConstructMethod() {
@@ -145,22 +185,52 @@ public class ServiceDetails {
         this.preDestroyMethod = preDestroyMethod;
     }
 
-    public Method[] getBeans() {
+    public ScopeType getScopeType() {
+        return this.scopeType;
+    }
+
+    public void setScopeType(ScopeType scopeType) {
+        this.scopeType = scopeType;
+    }
+
+    public Collection<ServiceBeanDetails> getBeans() {
         return this.beans;
     }
 
-    public void setBeans(Method[] beans) {
+    public void setBeans(Collection<ServiceBeanDetails> beans) {
         this.beans = beans;
     }
 
-    public List<ServiceDetails> getDependantServices() {
-        return Collections.unmodifiableList(this.dependantServices);
+    public Field[] getAutowireAnnotatedFields() {
+        return this.autowireAnnotatedFields;
     }
 
-    public void addDependantService(ServiceDetails serviceDetails) {
-        this.dependantServices.add(serviceDetails);
+    public void setAutowireAnnotatedFields(Field[] autowireAnnotatedFields) {
+        this.autowireAnnotatedFields = autowireAnnotatedFields;
     }
 
+    public LinkedList<DependencyParam> getResolvedConstructorParams() {
+        return this.resolvedConstructorParams;
+    }
+
+    public void setResolvedConstructorParams(LinkedList<DependencyParam> resolvedConstructorParams) {
+        this.resolvedConstructorParams = resolvedConstructorParams;
+    }
+
+    public LinkedList<DependencyParam> getResolvedFields() {
+        return this.resolvedFields;
+    }
+
+    public void setResolvedFields(LinkedList<DependencyParam> resolvedFields) {
+        this.resolvedFields = resolvedFields;
+    }
+
+    /**
+     * We are using the serviceType hashcode in order to make this class unique
+     * when using in in sets.
+     *
+     * @return hashcode.
+     */
     @Override
     public int hashCode() {
         if (this.serviceType == null) {
