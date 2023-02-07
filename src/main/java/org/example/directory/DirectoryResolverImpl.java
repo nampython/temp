@@ -2,6 +2,8 @@ package org.example.directory;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 
 /**
  * DirectoryResolver implementation.
@@ -31,11 +33,12 @@ public class DirectoryResolverImpl implements DirectoryResolver {
      * @param initClass - the given class.
      */
     private String getDirectory(Class<?> initClass) {
-        return initClass
-                .getProtectionDomain()
-                .getCodeSource()
-                .getLocation()
-                .getFile();
+//        return initClass
+//                .getProtectionDomain()
+//                .getCodeSource()
+//                .getLocation()
+//                .getFile();
+        return URLDecoder.decode(initClass.getProtectionDomain().getCodeSource().getLocation().getFile(), StandardCharsets.UTF_8);
     }
 
     /**
@@ -43,7 +46,7 @@ public class DirectoryResolverImpl implements DirectoryResolver {
      * @return JAR_FILE or DIRECTORY.
      */
     private DirectoryType getDirectoryType(String pathDir) {
-        File file = new File(pathDir);
+        final File file = new File(pathDir);
         boolean isJarFIle = this.checkJarFile(file, pathDir);
         return isJarFIle ? DirectoryType.JAR_FILE : DirectoryType.DIRECTORY;
     }
